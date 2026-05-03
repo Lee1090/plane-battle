@@ -40,7 +40,7 @@ plane-battle/
 ├── backend/               # Spring Boot 后端
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/airplane/game/
+│   │   │   ├── java/com/planebattle/game/
 │   │   │   │
 │   │   │   │   ├── config/        # WebSocket 配置
 │   │   │   │   │   └── WebSocketConfig.java
@@ -74,7 +74,7 @@ plane-battle/
 │   │   │   │   ├── util/
 │   │   │   │   │   └── JsonUtils.java
 │   │   │   │   │
-│   │   │   │   └── AirplaneGameApplication.java
+│   │   │   │   └── PlaneBattleApplication.java
 │   │   │   │
 │   │   │   └── resources/
 │   │   │       └── application.yml
