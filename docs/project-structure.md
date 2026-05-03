@@ -1,4 +1,4 @@
-airplane-game/
+plane-battle/
 ├── frontend/                # React 前端
 │   ├── public/
 │   ├── src/
