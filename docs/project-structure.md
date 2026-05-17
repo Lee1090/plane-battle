@@ -40,7 +40,7 @@ plane-battle/
 ├── backend/               # Spring Boot 后端
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/planebattle/game/
+│   │   │   ├── java/com/planebattle/
 │   │   │   │
 │   │   │   │   ├── config/        # WebSocket 配置
 │   │   │   │   │   └── WebSocketConfig.java
@@ -85,4 +85,5 @@ plane-battle/
 ├── .gitignore
 ├── README.md
 └── docs/                  # 设计文档（你现在这份）
-    └── design.md
+    ├── design.md
+    └── project-structure.md

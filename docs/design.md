@@ -276,7 +276,7 @@ export interface ClientView {
 建议包结构：
 
 ```text
-com.planebattle.game
+com.planebattle
   config
   websocket
   game
