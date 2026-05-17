@@ -33,7 +33,7 @@ plane-battle/
 │   │   └── main.tsx
 │   │
 │   ├── .env               # 本地环境变量
-│   ├── .env.production    # 生产环境变量（Vercel）
+│   ├── .env.production.example # 生产环境变量示例（Vercel）
 │   ├── package.json
 │   └── tsconfig.json
 │

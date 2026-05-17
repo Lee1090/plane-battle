@@ -28,3 +28,6 @@ replay_pid*
 
 # Build output
 backend/target/
+frontend/dist/
+frontend/node_modules/
+frontend/tsconfig.tsbuildinfo

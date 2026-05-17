@@ -583,7 +583,7 @@ RIGHT: (-col, row)
 ### 10.1 连接地址
 
 ```text
-ws://localhost:8080/ws/game
+ws://localhost:8090/ws/game
 ```
 
 第一版使用原生 WebSocket + JSON 消息。
@@ -850,6 +850,7 @@ UI 必须支持：
 2. 前端根据浏览器语言自动选择默认语言
 3. 提供手动切换语言（可放在右上角）
 4. 语言切换不影响游戏状态
+5. 语言切换控件本身使用双语标签，例如“语言 / Language”，避免用户看不懂当前语言时无法切换
 ```
 
 推荐方案：
@@ -1153,6 +1154,13 @@ Planes cannot overlap.
 Deployment requires exactly 3 planes.
 ```
 
+前端处理要求：
+
+```text
+1. 服务端 ERROR 消息需要显示为用户可见错误提示
+2. 如果收到无法解析的 WebSocket 消息，前端需要显示受控错误，而不是让页面崩溃
+```
+
 ---
 
 ## 15. 第一版开发顺序
@@ -1181,8 +1189,11 @@ Deployment requires exactly 3 planes.
 
 - React + TypeScript 项目
 - useGameSocket hook
-- 能连接 ws://localhost:8080/ws/game
+- 能连接 ws://localhost:8090/ws/game
 - 能显示 role / side / status
+- 能发送 SIT_DOWN / STAND_UP
+- 提供简体中文 / 英文切换，语言选择控件使用“语言 / Language”双语标签
+- 前端需要处理服务端 ERROR 消息和非法 JSON 消息
 
 ### Step 4: 部署阶段
 
@@ -1316,7 +1327,7 @@ Start Command: java -jar target/*.jar
 配置端口：
 
 ```properties
-server.port=${PORT:8080}
+server.port=${PORT:8090}
 ```
 
 ---
@@ -1326,7 +1337,7 @@ server.port=${PORT:8080}
 ```text
 开发：
 React: http://localhost:5173
-WS: ws://localhost:8080/ws/game
+WS: ws://localhost:8090/ws/game
 
 生产：
 React: https://xxx.vercel.app
