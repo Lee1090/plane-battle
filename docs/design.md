@@ -258,6 +258,8 @@ export interface GameState {
   winner: PlayerSide | null;
   playerABoard: PlayerBoard | null;
   playerBBoard: PlayerBoard | null;
+  playerASeated: boolean;
+  playerBSeated: boolean;
   playerAReady: boolean;
   playerBReady: boolean;
 }
@@ -385,6 +387,8 @@ public class GameState {
     private PlayerSide winner;
     private PlayerBoard playerABoard;
     private PlayerBoard playerBBoard;
+    private boolean playerASeated;
+    private boolean playerBSeated;
     private boolean playerAReady;
     private boolean playerBReady;
 }
@@ -660,12 +664,16 @@ export type ServerMessageType =
 }
 ```
 
-然后广播当前桌子状态：
+然后按连接广播当前客户端视图：
 
 ```json
 {
   "type": "STATE_UPDATE",
-  "data": {}
+  "data": {
+    "role": "SPECTATOR",
+    "side": null,
+    "gameState": {}
+  }
 }
 ```
 
@@ -742,7 +750,8 @@ export type ServerMessageType =
 第一版也可以简单处理：
 
 ```text
-游戏进入 PLAYING 后不允许 STAND_UP。
+WAITING 和 DEPLOYING 阶段允许 STAND_UP；游戏进入 PLAYING 后不允许 STAND_UP。
+Step 4 加入部署提交后，需要禁止已经提交部署的玩家 STAND_UP。
 ```
 
 ---
@@ -808,12 +817,16 @@ export type ServerMessageType =
 }
 ```
 
-然后广播完整状态：
+然后按连接广播最新客户端视图：
 
 ```json
 {
   "type": "STATE_UPDATE",
-  "data": {}
+  "data": {
+    "role": "PLAYER_A",
+    "side": "A",
+    "gameState": {}
+  }
 }
 ```
 
@@ -1070,6 +1083,7 @@ public List<Plane> validateAndBuildPlanes(List<PlaneDeploymentRequest> requests)
 ## 13. 状态可见性设计
 
 注意：不能把完整 GameState 无差别发给所有客户端，否则玩家可以在浏览器里看到对方飞机位置。
+STATE_UPDATE 的 data 应为针对当前连接生成的 ClientView，而不是所有客户端共享同一个裸 GameState。
 
 第一版建议后端生成 ClientView：
 
@@ -1156,8 +1170,12 @@ Deployment requires exactly 3 planes.
 
 - GameRoom
 - PlayerSession
-- GameState
-- 玩家 / 观战者分配
+- JOIN 创建 PlayerSession，默认 Spectator
+- SIT_DOWN 占用 Player A / Player B 座位
+- GameState 记录 playerASeated / playerBSeated
+- 双方坐下后进入 DEPLOYING
+- STAND_UP / 断开连接释放开局前座位
+- STATE_UPDATE 按 session 发送 ClientView
 
 ### Step 3: 前端基础连接
 

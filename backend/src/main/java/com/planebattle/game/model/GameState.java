@@ -7,6 +7,8 @@ public class GameState {
     private PlayerSide winner;
     private PlayerBoard playerABoard;
     private PlayerBoard playerBBoard;
+    private boolean playerASeated;
+    private boolean playerBSeated;
     private boolean playerAReady;
     private boolean playerBReady;
 
@@ -48,6 +50,22 @@ public class GameState {
 
     public void setPlayerBBoard(PlayerBoard playerBBoard) {
         this.playerBBoard = playerBBoard;
+    }
+
+    public boolean isPlayerASeated() {
+        return playerASeated;
+    }
+
+    public void setPlayerASeated(boolean playerASeated) {
+        this.playerASeated = playerASeated;
+    }
+
+    public boolean isPlayerBSeated() {
+        return playerBSeated;
+    }
+
+    public void setPlayerBSeated(boolean playerBSeated) {
+        this.playerBSeated = playerBSeated;
     }
 
     public boolean isPlayerAReady() {

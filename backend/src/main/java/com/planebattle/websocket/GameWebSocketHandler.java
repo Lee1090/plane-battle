@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.planebattle.game.dto.ClientMessage;
 import com.planebattle.game.dto.ClientView;
 import com.planebattle.game.dto.ServerMessage;
+import com.planebattle.game.model.PlayerSide;
 import com.planebattle.game.service.GameService;
 import com.planebattle.util.JsonUtils;
 import java.io.IOException;
@@ -19,6 +20,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 public class GameWebSocketHandler extends TextWebSocketHandler {
 
     private static final String JOIN = "JOIN";
+    private static final String SIT_DOWN = "SIT_DOWN";
+    private static final String STAND_UP = "STAND_UP";
     private static final String CONNECTED = "CONNECTED";
     private static final String STATE_UPDATE = "STATE_UPDATE";
 
@@ -49,7 +52,28 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         if (JOIN.equals(clientMessage.getType())) {
             ClientView clientView = gameService.join(session.getId());
             send(session, ServerMessage.data(CONNECTED, clientView));
-            broadcast(ServerMessage.data(STATE_UPDATE, gameService.getGameState()));
+            broadcastClientViews();
+            return;
+        }
+
+        if (SIT_DOWN.equals(clientMessage.getType())) {
+            try {
+                PlayerSide side = parsePlayerSide(clientMessage);
+                gameService.sitDown(session.getId(), side);
+                broadcastClientViews();
+            } catch (IllegalArgumentException exception) {
+                send(session, ServerMessage.error(exception.getMessage()));
+            }
+            return;
+        }
+
+        if (STAND_UP.equals(clientMessage.getType())) {
+            try {
+                gameService.standUp(session.getId());
+                broadcastClientViews();
+            } catch (IllegalArgumentException exception) {
+                send(session, ServerMessage.error(exception.getMessage()));
+            }
             return;
         }
 
@@ -59,13 +83,27 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessions.remove(session);
+        gameService.leave(session.getId());
+        broadcastClientViews();
     }
 
-    private void broadcast(ServerMessage<?> message) {
+    private PlayerSide parsePlayerSide(ClientMessage clientMessage) {
+        if (clientMessage.getData() == null || clientMessage.getData().get("side") == null) {
+            throw new IllegalArgumentException("Player side is required.");
+        }
+        try {
+            return PlayerSide.valueOf(clientMessage.getData().get("side").asText());
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Invalid player side.");
+        }
+    }
+
+    private void broadcastClientViews() {
         sessions.removeIf(session -> !session.isOpen());
         for (WebSocketSession session : sessions) {
             try {
-                send(session, message);
+                ClientView clientView = gameService.getClientView(session.getId());
+                send(session, ServerMessage.data(STATE_UPDATE, clientView));
             } catch (IOException ignored) {
                 sessions.remove(session);
             }
