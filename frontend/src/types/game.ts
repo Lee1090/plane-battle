@@ -29,6 +29,12 @@ export interface Plane {
   parts: PlanePart[];
 }
 
+export interface PlaneDeploymentRequest {
+  id: string;
+  head: Cell;
+  direction: Direction;
+}
+
 export interface AttackRecord {
   row: number;
   col: number;

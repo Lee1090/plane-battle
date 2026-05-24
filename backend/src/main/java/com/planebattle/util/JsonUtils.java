@@ -1,6 +1,7 @@
 package com.planebattle.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
@@ -19,5 +20,9 @@ public class JsonUtils {
 
     public String toJson(Object value) throws JsonProcessingException {
         return objectMapper.writeValueAsString(value);
+    }
+
+    public <T> T fromJsonNode(JsonNode jsonNode, Class<T> valueType) throws JsonProcessingException {
+        return objectMapper.treeToValue(jsonNode, valueType);
     }
 }

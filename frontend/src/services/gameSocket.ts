@@ -1,4 +1,4 @@
-import type { ClientMessage, PlayerSide } from '../types/game';
+import type { ClientMessage, PlaneDeploymentRequest, PlayerSide } from '../types/game';
 
 export function createGameSocket() {
   const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8090/ws/game';
@@ -15,4 +15,10 @@ export function sitDownMessage(side: PlayerSide): ClientMessage<{ side: PlayerSi
 
 export function standUpMessage(): ClientMessage {
   return { type: 'STAND_UP' };
+}
+
+export function submitDeploymentMessage(
+  planes: PlaneDeploymentRequest[],
+): ClientMessage<{ planes: PlaneDeploymentRequest[] }> {
+  return { type: 'SUBMIT_DEPLOYMENT', data: { planes } };
 }

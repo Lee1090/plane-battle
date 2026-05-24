@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createGameSocket, joinMessage, sitDownMessage, standUpMessage } from '../services/gameSocket';
-import type { ClientMessage, ClientView, PlayerSide, ServerMessage } from '../types/game';
+import {
+  createGameSocket,
+  joinMessage,
+  sitDownMessage,
+  standUpMessage,
+  submitDeploymentMessage,
+} from '../services/gameSocket';
+import type { ClientMessage, ClientView, PlaneDeploymentRequest, PlayerSide, ServerMessage } from '../types/game';
 
 type ConnectionStatus = 'CONNECTING' | 'OPEN' | 'CLOSED' | 'ERROR';
 
@@ -69,5 +75,6 @@ export function useGameSocket() {
     error,
     sitDown: (side: PlayerSide) => send(sitDownMessage(side)),
     standUp: () => send(standUpMessage()),
+    submitDeployment: (planes: PlaneDeploymentRequest[]) => send(submitDeploymentMessage(planes)),
   };
 }

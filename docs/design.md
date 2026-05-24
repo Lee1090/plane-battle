@@ -1,5 +1,22 @@
 # 飞机棋盘对战游戏 - MVP 设计文档
 
+## Design updates
+
+- Step 4 UI design has been refined in `docs/step-4-ui-design.md`.
+- The deployment UI should use a fixed two-board table layout instead of a separate deployment-only board.
+- The left board is always Player A, and the right board is always Player B.
+- Players operate the board attached to their seat: A on the left, B on the right.
+- Board positions and reserved control areas should not move as players sit, deploy, or submit.
+- The full normal play surface should fit in one browser viewport without vertical scrolling.
+- Hidden opponent/spectator boards should still render the 10 x 10 grid frame with an overlay, not an empty area.
+- Direction labels describe the plane head direction: `LEFT` means the head is on the left and the body extends right.
+- During deployment, arrow keys rotate the selected plane by body-extension direction: left key sets head right, right key sets head left, up key sets head down, and down key sets head up.
+- During deployment, players can drag an already placed plane head to another cell to move that plane while keeping its direction. The drag preview should show the whole plane.
+- During deployment, clicking an already placed plane head selects that plane as the current focus.
+- During deployment, clicking an empty cell places the next undeployed plane in order: `P1`, then `P2`, then `P3`; after all three are placed, empty-cell clicks do nothing.
+- During deployment, invalid placement feedback should distinguish out-of-board placement from plane overlap.
+- Plane heads share one color; each plane uses a different uniform non-head body color.
+
 ## 1. 项目目标
 
 实现一个实时网页棋类对战游戏。第一版只做 Web，不需要数据库，不需要多房间。
@@ -975,24 +992,25 @@ FINISHED:
 
 ### 11.4 对战 UI
 
-玩家视图建议分成两个棋盘：
+玩家和观战者都使用固定双棋盘桌面：
 
 ```text
-左侧：自己的棋盘
-- 显示自己的飞机
-- 显示对方攻击过的位置
+左侧：Player A 棋盘
+- Player A 坐在左侧并操作左侧棋盘
+- Player A 可以看到自己的飞机
+- Player B 和观战者看不到 A 的隐藏飞机
 
-右侧：对方棋盘
-- 不显示对方飞机
-- 只显示自己攻击记录
-- 点击格子发送 ATTACK
+右侧：Player B 棋盘
+- Player B 坐在右侧并操作右侧棋盘
+- Player B 可以看到自己的飞机
+- Player A 和观战者看不到 B 的隐藏飞机
 ```
 
 观战者视图：
 
 ```text
-可以显示双方棋盘
-第一版建议隐藏双方飞机，只显示攻击记录
+固定左 A 右 B
+第一版建议隐藏双方飞机，只显示公开攻击记录
 以后可以增加“上帝视角”开关
 ```
 
