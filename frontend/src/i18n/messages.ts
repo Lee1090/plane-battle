@@ -31,6 +31,17 @@ export type MessageKey =
   | 'direction'
   | 'submitDeployment'
   | 'deploymentSubmitted'
+  | 'battle'
+  | 'attackOpponentBoard'
+  | 'yourTurn'
+  | 'waitingTurn'
+  | 'spectatorPlaying'
+  | 'winnerText'
+  | 'attackCell'
+  | 'alreadyAttacked'
+  | 'miss'
+  | 'hitPlane'
+  | 'hitHead'
   | 'deploymentIncomplete'
   | 'deploymentInvalid'
   | 'deploymentOutOfBoard'
@@ -79,6 +90,17 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     direction: 'Direction',
     submitDeployment: 'Submit Deployment',
     deploymentSubmitted: 'Deployment submitted.',
+    battle: 'Battle',
+    attackOpponentBoard: 'Attack the opponent board.',
+    yourTurn: 'Your turn. Choose one cell on the opponent board.',
+    waitingTurn: 'Waiting for the opponent attack.',
+    spectatorPlaying: 'Watching the battle.',
+    winnerText: 'Winner',
+    attackCell: 'Attack this cell.',
+    alreadyAttacked: 'Already attacked.',
+    miss: 'Miss',
+    hitPlane: 'Hit plane',
+    hitHead: 'Hit head',
     deploymentIncomplete: 'Place all 3 planes before submitting.',
     deploymentInvalid: 'Planes must stay inside the board and cannot overlap.',
     deploymentOutOfBoard: 'Part of a plane is outside the board.',
@@ -135,6 +157,17 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     direction: '\u65b9\u5411',
     submitDeployment: '\u63d0\u4ea4\u90e8\u7f72',
     deploymentSubmitted: '\u90e8\u7f72\u5df2\u63d0\u4ea4\u3002',
+    battle: '\u5bf9\u6218',
+    attackOpponentBoard: '\u653b\u51fb\u5bf9\u65b9\u68cb\u76d8\u3002',
+    yourTurn: '\u8f6e\u5230\u4f60\u4e86\uff0c\u8bf7\u5728\u5bf9\u65b9\u68cb\u76d8\u9009\u62e9\u4e00\u4e2a\u683c\u5b50\u653b\u51fb\u3002',
+    waitingTurn: '\u7b49\u5f85\u5bf9\u65b9\u653b\u51fb\u3002',
+    spectatorPlaying: '\u6b63\u5728\u89c2\u6218\u3002',
+    winnerText: '\u80dc\u8005',
+    attackCell: '\u653b\u51fb\u8fd9\u4e2a\u683c\u5b50\u3002',
+    alreadyAttacked: '\u8fd9\u4e2a\u683c\u5b50\u5df2\u653b\u51fb\u8fc7\u3002',
+    miss: '\u672a\u547d\u4e2d',
+    hitPlane: '\u547d\u4e2d\u673a\u8eab',
+    hitHead: '\u547d\u4e2d\u673a\u5934',
     deploymentIncomplete: '\u8bf7\u5148\u653e\u7f6e 3 \u67b6\u98de\u673a\u3002',
     deploymentInvalid: '\u98de\u673a\u5fc5\u987b\u5728\u68cb\u76d8\u5185\uff0c\u4e14\u4e0d\u80fd\u91cd\u53e0\u3002',
     deploymentOutOfBoard: '\u98de\u673a\u4e0d\u80fd\u8d85\u51fa\u68cb\u76d8\u8303\u56f4\u3002',

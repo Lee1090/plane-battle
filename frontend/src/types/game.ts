@@ -35,7 +35,20 @@ export interface PlaneDeploymentRequest {
   direction: Direction;
 }
 
+export interface AttackRequest {
+  row: number;
+  col: number;
+}
+
 export interface AttackRecord {
+  row: number;
+  col: number;
+  result: AttackResult;
+}
+
+export interface AttackResultResponse {
+  attacker: PlayerSide;
+  defender: PlayerSide;
   row: number;
   col: number;
   result: AttackResult;

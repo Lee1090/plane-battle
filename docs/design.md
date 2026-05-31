@@ -1230,6 +1230,7 @@ Deployment requires exactly 3 planes.
 - 胜负判断
 - 回合切换
 - 前端显示攻击结果
+- 详细实现边界见 `docs/step-5-attack-design.md`
 
 ### Step 6: 观战者
 

@@ -3,11 +3,14 @@ package com.planebattle.game.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.planebattle.game.dto.AttackResultResponse;
 import com.planebattle.game.dto.ClientView;
 import com.planebattle.game.dto.PlaneDeploymentRequest;
+import com.planebattle.game.model.AttackResult;
 import com.planebattle.game.model.Cell;
 import com.planebattle.game.model.Direction;
 import com.planebattle.game.model.GameStatus;
+import com.planebattle.game.model.PlanePart;
 import com.planebattle.game.model.PlayerRole;
 import com.planebattle.game.model.PlayerSide;
 import com.planebattle.game.rule.PlaneShapeService;
@@ -237,9 +240,137 @@ class GameServiceTest {
                 .hasMessage("Deployment requires plane ids P1, P2, and P3.");
     }
 
+    @Test
+    void attackRejectsBeforePlaying() {
+        GameService gameService = createGameService();
+        gameService.sitDown("session-a", PlayerSide.A);
+
+        assertThatThrownBy(() -> gameService.attack("session-a", 0, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid game status.");
+    }
+
+    @Test
+    void attackRejectsSpectator() {
+        GameService gameService = createPlayingGame();
+        gameService.join("spectator");
+
+        assertThatThrownBy(() -> gameService.attack("spectator", 0, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Only players can perform this action.");
+    }
+
+    @Test
+    void attackRejectsNonCurrentTurnPlayer() {
+        GameService gameService = createPlayingGame();
+
+        assertThatThrownBy(() -> gameService.attack("session-b", 0, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("It is not your turn.");
+    }
+
+    @Test
+    void attackRejectsOutOfBoardTarget() {
+        GameService gameService = createPlayingGame();
+
+        assertThatThrownBy(() -> gameService.attack("session-a", -1, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Attack target is out of board.");
+    }
+
+    @Test
+    void attackMissRecordsAttackAndSwitchesTurn() {
+        GameService gameService = createPlayingGame();
+
+        AttackResultResponse response = gameService.attack("session-a", 9, 9);
+
+        assertThat(response.getAttacker()).isEqualTo(PlayerSide.A);
+        assertThat(response.getDefender()).isEqualTo(PlayerSide.B);
+        assertThat(response.getResult()).isEqualTo(AttackResult.MISS);
+        assertThat(gameService.getGameState().getCurrentTurn()).isEqualTo(PlayerSide.B);
+        assertThat(gameService.getGameState().getPlayerBBoard().getReceivedAttacks())
+                .singleElement()
+                .satisfies(record -> {
+                    assertThat(record.getRow()).isEqualTo(9);
+                    assertThat(record.getCol()).isEqualTo(9);
+                    assertThat(record.getResult()).isEqualTo(AttackResult.MISS);
+                });
+    }
+
+    @Test
+    void attackHitPlaneMarksPartAndSwitchesTurn() {
+        GameService gameService = createPlayingGame();
+
+        AttackResultResponse response = gameService.attack("session-a", 1, 0);
+
+        assertThat(response.getResult()).isEqualTo(AttackResult.HIT_PLANE);
+        assertThat(findPart(gameService, PlayerSide.B, 1, 0).isHit()).isTrue();
+        assertThat(gameService.getGameState().getCurrentTurn()).isEqualTo(PlayerSide.B);
+    }
+
+    @Test
+    void attackHitHeadMarksHeadAndSwitchesTurn() {
+        GameService gameService = createPlayingGame();
+
+        AttackResultResponse response = gameService.attack("session-a", 0, 2);
+
+        assertThat(response.getResult()).isEqualTo(AttackResult.HIT_HEAD);
+        assertThat(findPart(gameService, PlayerSide.B, 0, 2).isHit()).isTrue();
+        assertThat(gameService.getGameState().getStatus()).isEqualTo(GameStatus.PLAYING);
+        assertThat(gameService.getGameState().getCurrentTurn()).isEqualTo(PlayerSide.B);
+    }
+
+    @Test
+    void attackRejectsRepeatedTarget() {
+        GameService gameService = createPlayingGame();
+        gameService.attack("session-a", 9, 9);
+        gameService.attack("session-b", 9, 9);
+
+        assertThatThrownBy(() -> gameService.attack("session-a", 9, 9))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("This cell has already been attacked.");
+    }
+
+    @Test
+    void attackFinishesGameWhenAllDefenderHeadsAreHit() {
+        GameService gameService = createPlayingGame();
+
+        gameService.attack("session-a", 0, 2);
+        gameService.attack("session-b", 9, 9);
+        gameService.attack("session-a", 6, 6);
+        gameService.attack("session-b", 9, 8);
+        AttackResultResponse finalAttack = gameService.attack("session-a", 6, 3);
+
+        assertThat(finalAttack.getResult()).isEqualTo(AttackResult.HIT_HEAD);
+        assertThat(gameService.getGameState().getStatus()).isEqualTo(GameStatus.FINISHED);
+        assertThat(gameService.getGameState().getWinner()).isEqualTo(PlayerSide.A);
+        assertThat(gameService.getGameState().getCurrentTurn()).isNull();
+        assertThat(gameService.getClientView("spectator").getGameState().getPlayerBBoard().getPlanes()).hasSize(3);
+    }
+
+    @Test
+    void attackKeepsOpponentPlanesHiddenBeforeGameEnds() {
+        GameService gameService = createPlayingGame();
+
+        gameService.attack("session-a", 9, 9);
+
+        ClientView playerAView = gameService.getClientView("session-a");
+        assertThat(playerAView.getGameState().getPlayerBBoard().getPlanes()).isEmpty();
+        assertThat(playerAView.getGameState().getPlayerBBoard().getReceivedAttacks()).hasSize(1);
+    }
+
     private GameService createGameService() {
         PlaneShapeService planeShapeService = new PlaneShapeService();
         return new GameService(new DeploymentValidator(planeShapeService));
+    }
+
+    private GameService createPlayingGame() {
+        GameService gameService = createGameService();
+        gameService.sitDown("session-a", PlayerSide.A);
+        gameService.sitDown("session-b", PlayerSide.B);
+        gameService.submitDeployment("session-a", validDeployment());
+        gameService.submitDeployment("session-b", validDeployment());
+        return gameService;
     }
 
     private List<PlaneDeploymentRequest> validDeployment() {
@@ -262,5 +393,17 @@ class GameServiceTest {
         cell.setRow(row);
         cell.setCol(col);
         return cell;
+    }
+
+    private PlanePart findPart(GameService gameService, PlayerSide side, int row, int col) {
+        return (side == PlayerSide.A
+                        ? gameService.getGameState().getPlayerABoard()
+                        : gameService.getGameState().getPlayerBBoard())
+                .getPlanes()
+                .stream()
+                .flatMap(plane -> plane.getParts().stream())
+                .filter(part -> part.getRow() == row && part.getCol() == col)
+                .findFirst()
+                .orElseThrow();
     }
 }

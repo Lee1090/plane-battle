@@ -1,6 +1,8 @@
 package com.planebattle.websocket;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.planebattle.game.dto.AttackRequest;
+import com.planebattle.game.dto.AttackResultResponse;
 import com.planebattle.game.dto.ClientMessage;
 import com.planebattle.game.dto.ClientView;
 import com.planebattle.game.dto.JoinRequest;
@@ -25,8 +27,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private static final String SIT_DOWN = "SIT_DOWN";
     private static final String STAND_UP = "STAND_UP";
     private static final String SUBMIT_DEPLOYMENT = "SUBMIT_DEPLOYMENT";
+    private static final String ATTACK = "ATTACK";
     private static final String CONNECTED = "CONNECTED";
     private static final String STATE_UPDATE = "STATE_UPDATE";
+    private static final String ATTACK_RESULT = "ATTACK_RESULT";
 
     private final Set<WebSocketSession> sessions = ConcurrentHashMap.newKeySet();
     private final GameService gameService;
@@ -93,6 +97,23 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (ATTACK.equals(clientMessage.getType())) {
+            try {
+                AttackRequest attackRequest = parseAttackRequest(clientMessage);
+                AttackResultResponse attackResult = gameService.attack(
+                        session.getId(),
+                        attackRequest.getRow(),
+                        attackRequest.getCol());
+                broadcast(ServerMessage.data(ATTACK_RESULT, attackResult));
+                broadcastClientViews();
+            } catch (JsonProcessingException exception) {
+                send(session, ServerMessage.error("Invalid attack payload."));
+            } catch (IllegalArgumentException exception) {
+                send(session, ServerMessage.error(exception.getMessage()));
+            }
+            return;
+        }
+
         send(session, ServerMessage.error("Invalid message type."));
     }
 
@@ -121,6 +142,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         return jsonUtils.fromJsonNode(clientMessage.getData(), SubmitDeploymentRequest.class);
     }
 
+    private AttackRequest parseAttackRequest(ClientMessage clientMessage) throws JsonProcessingException {
+        if (clientMessage.getData() == null) {
+            throw new IllegalArgumentException("Attack payload is required.");
+        }
+        return jsonUtils.fromJsonNode(clientMessage.getData(), AttackRequest.class);
+    }
+
     private JoinRequest parseJoinRequest(ClientMessage clientMessage) throws JsonProcessingException {
         if (clientMessage.getData() == null) {
             return new JoinRequest();
@@ -134,6 +162,17 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             try {
                 ClientView clientView = gameService.getClientView(session.getId());
                 send(session, ServerMessage.data(STATE_UPDATE, clientView));
+            } catch (IOException ignored) {
+                sessions.remove(session);
+            }
+        }
+    }
+
+    private void broadcast(ServerMessage<?> message) {
+        sessions.removeIf(session -> !session.isOpen());
+        for (WebSocketSession session : sessions) {
+            try {
+                send(session, message);
             } catch (IOException ignored) {
                 sessions.remove(session);
             }

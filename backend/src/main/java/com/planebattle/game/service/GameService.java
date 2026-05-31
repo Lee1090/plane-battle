@@ -2,9 +2,15 @@ package com.planebattle.game.service;
 
 import com.planebattle.game.dto.ClientView;
 import com.planebattle.game.dto.PlaneDeploymentRequest;
+import com.planebattle.game.dto.AttackResultResponse;
+import com.planebattle.game.model.AttackRecord;
+import com.planebattle.game.model.AttackResult;
 import com.planebattle.game.model.GameRoom;
 import com.planebattle.game.model.GameState;
 import com.planebattle.game.model.GameStatus;
+import com.planebattle.game.model.Plane;
+import com.planebattle.game.model.PlanePart;
+import com.planebattle.game.model.PlanePartType;
 import com.planebattle.game.model.PlayerBoard;
 import com.planebattle.game.model.PlayerRole;
 import com.planebattle.game.model.PlayerSession;
@@ -122,6 +128,56 @@ public class GameService {
         return buildClientView(playerSession);
     }
 
+    public synchronized AttackResultResponse attack(String sessionId, int row, int col) {
+        if (room.getGameState().getStatus() != GameStatus.PLAYING) {
+            throw new IllegalArgumentException("Invalid game status.");
+        }
+        if (!isInBoard(row, col)) {
+            throw new IllegalArgumentException("Attack target is out of board.");
+        }
+
+        PlayerSession playerSession = room.getSessions().get(sessionId);
+        if (playerSession == null || playerSession.getRole() == PlayerRole.SPECTATOR || playerSession.getSide() == null) {
+            throw new IllegalArgumentException("Only players can perform this action.");
+        }
+        if (room.getGameState().getCurrentTurn() != playerSession.getSide()) {
+            throw new IllegalArgumentException("It is not your turn.");
+        }
+
+        PlayerSide attacker = playerSession.getSide();
+        PlayerSide defender = opponentOf(attacker);
+        PlayerBoard defenderBoard = boardOf(defender);
+        if (defenderBoard == null) {
+            throw new IllegalArgumentException("Opponent board is not ready.");
+        }
+        if (hasAlreadyAttacked(defenderBoard, row, col)) {
+            throw new IllegalArgumentException("This cell has already been attacked.");
+        }
+
+        PlanePart hitPart = findPart(defenderBoard, row, col);
+        AttackResult result = resolveAttackResult(hitPart);
+        if (hitPart != null) {
+            hitPart.setHit(true);
+        }
+        defenderBoard.getReceivedAttacks().add(attackRecord(row, col, result));
+
+        if (allHeadsHit(defenderBoard)) {
+            room.getGameState().setStatus(GameStatus.FINISHED);
+            room.getGameState().setWinner(attacker);
+            room.getGameState().setCurrentTurn(null);
+        } else {
+            room.getGameState().setCurrentTurn(defender);
+        }
+
+        AttackResultResponse response = new AttackResultResponse();
+        response.setAttacker(attacker);
+        response.setDefender(defender);
+        response.setRow(row);
+        response.setCol(col);
+        response.setResult(result);
+        return response;
+    }
+
     public synchronized void leave(String sessionId) {
         PlayerSession playerSession = room.getSessions().remove(sessionId);
         if (playerSession == null) {
@@ -172,8 +228,9 @@ public class GameService {
         visible.setPlayerAReady(source.isPlayerAReady());
         visible.setPlayerBReady(source.isPlayerBReady());
 
-        boolean canSeeAPlanes = playerSession.getSide() == PlayerSide.A;
-        boolean canSeeBPlanes = playerSession.getSide() == PlayerSide.B;
+        boolean revealAllPlanes = source.getStatus() == GameStatus.FINISHED;
+        boolean canSeeAPlanes = revealAllPlanes || playerSession.getSide() == PlayerSide.A;
+        boolean canSeeBPlanes = revealAllPlanes || playerSession.getSide() == PlayerSide.B;
         visible.setPlayerABoard(copyBoard(source.getPlayerABoard(), canSeeAPlanes));
         visible.setPlayerBBoard(copyBoard(source.getPlayerBBoard(), canSeeBPlanes));
         return visible;
@@ -268,5 +325,54 @@ public class GameService {
             room.getGameState().setStatus(GameStatus.PLAYING);
             room.getGameState().setCurrentTurn(PlayerSide.A);
         }
+    }
+
+    private boolean isInBoard(int row, int col) {
+        return row >= 0 && row < 10 && col >= 0 && col < 10;
+    }
+
+    private PlayerSide opponentOf(PlayerSide side) {
+        return side == PlayerSide.A ? PlayerSide.B : PlayerSide.A;
+    }
+
+    private PlayerBoard boardOf(PlayerSide side) {
+        return side == PlayerSide.A ? room.getGameState().getPlayerABoard() : room.getGameState().getPlayerBBoard();
+    }
+
+    private boolean hasAlreadyAttacked(PlayerBoard board, int row, int col) {
+        return board.getReceivedAttacks().stream()
+                .anyMatch(record -> record.getRow() == row && record.getCol() == col);
+    }
+
+    private PlanePart findPart(PlayerBoard board, int row, int col) {
+        return board.getPlanes().stream()
+                .map(Plane::getParts)
+                .flatMap(List::stream)
+                .filter(part -> part.getRow() == row && part.getCol() == col)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private AttackResult resolveAttackResult(PlanePart part) {
+        if (part == null) {
+            return AttackResult.MISS;
+        }
+        return part.getType() == PlanePartType.HEAD ? AttackResult.HIT_HEAD : AttackResult.HIT_PLANE;
+    }
+
+    private AttackRecord attackRecord(int row, int col, AttackResult result) {
+        AttackRecord record = new AttackRecord();
+        record.setRow(row);
+        record.setCol(col);
+        record.setResult(result);
+        return record;
+    }
+
+    private boolean allHeadsHit(PlayerBoard board) {
+        return board.getPlanes().stream()
+                .map(Plane::getParts)
+                .flatMap(List::stream)
+                .filter(part -> part.getType() == PlanePartType.HEAD)
+                .allMatch(PlanePart::isHit);
     }
 }

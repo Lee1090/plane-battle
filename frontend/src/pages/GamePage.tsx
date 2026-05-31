@@ -6,7 +6,7 @@ import type { Locale, MessageKey } from '../i18n/messages';
 
 export function GamePage() {
   const { locale, setLocale, t } = useMessages();
-  const { clientView, connectionStatus, error, sitDown, standUp, submitDeployment } = useGameSocket();
+  const { clientView, connectionStatus, error, sitDown, standUp, submitDeployment, attack } = useGameSocket();
   const gameState = clientView?.gameState;
   const role = clientView?.role ?? 'SPECTATOR';
   const canSit = role === 'SPECTATOR' && gameState?.status === 'WAITING';
@@ -45,6 +45,7 @@ export function GamePage() {
         onSitDown={sitDown}
         onStandUp={standUp}
         onSubmitDeployment={submitDeployment}
+        onAttack={attack}
         translate={t}
       />
 

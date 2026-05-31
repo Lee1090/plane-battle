@@ -1,4 +1,4 @@
-import type { ClientMessage, PlaneDeploymentRequest, PlayerSide } from '../types/game';
+import type { AttackRequest, ClientMessage, PlaneDeploymentRequest, PlayerSide } from '../types/game';
 
 export function createGameSocket() {
   const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8090/ws/game';
@@ -21,4 +21,8 @@ export function submitDeploymentMessage(
   planes: PlaneDeploymentRequest[],
 ): ClientMessage<{ planes: PlaneDeploymentRequest[] }> {
   return { type: 'SUBMIT_DEPLOYMENT', data: { planes } };
+}
+
+export function attackMessage(target: AttackRequest): ClientMessage<AttackRequest> {
+  return { type: 'ATTACK', data: target };
 }

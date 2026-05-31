@@ -14,6 +14,7 @@ import com.planebattle.game.service.DeploymentValidator;
 import com.planebattle.game.service.GameService;
 import com.planebattle.util.JsonUtils;
 import java.io.IOException;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.socket.TextMessage;
@@ -60,6 +61,36 @@ class GameWebSocketHandlerTest {
         assertThat(playerBPlayingView).contains("\"playerABoard\":{\"owner\":\"A\",\"planes\":[]");
     }
 
+    @Test
+    void broadcastsAttackResultAndStateUpdate() throws Exception {
+        GameWebSocketHandler handler = createHandler();
+        WebSocketSession playerA = session("player-a");
+        WebSocketSession playerB = session("player-b");
+        handler.afterConnectionEstablished(playerA);
+        handler.afterConnectionEstablished(playerB);
+
+        handle(handler, playerA, "{\"type\":\"JOIN\"}");
+        handle(handler, playerB, "{\"type\":\"JOIN\"}");
+        handle(handler, playerA, "{\"type\":\"SIT_DOWN\",\"data\":{\"side\":\"A\"}}");
+        handle(handler, playerB, "{\"type\":\"SIT_DOWN\",\"data\":{\"side\":\"B\"}}");
+        handle(handler, playerA, deploymentMessage());
+        handle(handler, playerB, deploymentMessage());
+        clearInvocations(playerA, playerB);
+
+        handle(handler, playerA, "{\"type\":\"ATTACK\",\"data\":{\"row\":9,\"col\":9}}");
+
+        List<String> playerAMessages = payloads(playerA);
+        List<String> playerBMessages = payloads(playerB);
+        assertThat(playerAMessages).anySatisfy(payload -> assertThat(payload)
+                .contains("\"type\":\"ATTACK_RESULT\"", "\"attacker\":\"A\"", "\"defender\":\"B\"", "\"result\":\"MISS\""));
+        assertThat(playerAMessages).anySatisfy(payload -> assertThat(payload)
+                .contains("\"type\":\"STATE_UPDATE\"", "\"currentTurn\":\"B\""));
+        assertThat(playerBMessages).anySatisfy(payload -> assertThat(payload)
+                .contains("\"type\":\"ATTACK_RESULT\"", "\"attacker\":\"A\"", "\"defender\":\"B\"", "\"result\":\"MISS\""));
+        assertThat(playerBMessages).anySatisfy(payload -> assertThat(payload)
+                .contains("\"type\":\"STATE_UPDATE\"", "\"currentTurn\":\"B\""));
+    }
+
     private GameWebSocketHandler createHandler() {
         PlaneShapeService planeShapeService = new PlaneShapeService();
         DeploymentValidator deploymentValidator = new DeploymentValidator(planeShapeService);
@@ -83,6 +114,12 @@ class GameWebSocketHandlerTest {
         ArgumentCaptor<TextMessage> captor = ArgumentCaptor.forClass(TextMessage.class);
         verify(session, atLeastOnce()).sendMessage(captor.capture());
         return captor.getAllValues().get(captor.getAllValues().size() - 1).getPayload();
+    }
+
+    private List<String> payloads(WebSocketSession session) throws IOException {
+        ArgumentCaptor<TextMessage> captor = ArgumentCaptor.forClass(TextMessage.class);
+        verify(session, atLeastOnce()).sendMessage(captor.capture());
+        return captor.getAllValues().stream().map(TextMessage::getPayload).toList();
     }
 
     private String deploymentMessage() {

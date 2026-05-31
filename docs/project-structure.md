@@ -43,8 +43,11 @@ plane-battle/
 |   |   |   `-- WebSocketConfig.java
 |   |   |-- game/
 |   |   |   |-- dto/
+|   |   |   |   |-- AttackRequest.java
+|   |   |   |   |-- AttackResultResponse.java
 |   |   |   |   |-- ClientMessage.java
 |   |   |   |   |-- ClientView.java
+|   |   |   |   |-- JoinRequest.java
 |   |   |   |   |-- PlaneDeploymentRequest.java
 |   |   |   |   |-- ServerMessage.java
 |   |   |   |   `-- SubmitDeploymentRequest.java
@@ -76,6 +79,7 @@ plane-battle/
 |   |-- src/main/resources/
 |   |   `-- application.yml
 |   |-- src/test/java/com/planebattle/
+|   |   |-- game/rule/PlaneShapeServiceTest.java
 |   |   |-- game/service/GameServiceTest.java
 |   |   `-- websocket/GameWebSocketHandlerTest.java
 |   |-- pom.xml
@@ -83,11 +87,14 @@ plane-battle/
 |   `-- mvnw.cmd
 |
 |-- docs/
+|   |-- changelog.zh-CN.md
 |   |-- design.md
 |   |-- step-4-ui-design.md
+|   |-- step-5-attack-design.md
 |   `-- project-structure.md
 |
 |-- .gitignore
 |-- .editorconfig
+|-- AGENTS.md
 `-- README.md
 ```

@@ -3,6 +3,51 @@
 本文档记录项目的重要实现变更、提交记录和设计调整。
 详细设计仍以 `docs/design.md` 和各 Step 设计文档为准。
 
+## Step 5 - 对战攻击阶段
+
+### Commit: `current commit`
+
+**Title:** `feat(step 5): add turn-based attack phase`  
+**Date:** 2026-05-31  
+**Branch:** `feature/step-5-attack`
+
+#### Summary
+
+实现 Step 5 对战阶段：双方完成部署后进入回合制攻击，后端负责攻击校验、命中判断、回合切换和胜负判定，前端在固定双棋盘布局中支持点击对方棋盘攻击并显示攻击结果。
+
+#### Backend
+
+- 新增 `AttackRequest` 和 `AttackResultResponse`。
+- 新增 `GameService.attack`，处理 `MISS`、`HIT_PLANE`、`HIT_HEAD`。
+- 攻击记录写入防守方 `receivedAttacks`。
+- 命中飞机部位时更新 `PlanePart.hit`。
+- 非当前回合、观战者、越界、重复攻击和非 `PLAYING` 状态攻击会被拒绝。
+- 击中防守方全部 3 个机头后进入 `FINISHED`，并设置 `winner`。
+- 对战中继续隐藏对方飞机位置，游戏结束后允许展示完整棋盘。
+
+#### Frontend
+
+- `PLAYING` 状态下，当前玩家可以点击对方棋盘格子发起攻击。
+- 自己棋盘、非当前回合玩家和观战者不能发起攻击。
+- 已攻击格子不再响应重复点击。
+- 攻击记录在棋盘中显示为 `M`、`H`、`X`。
+- 控制区在对战阶段显示回合提示、观战提示和胜者信息。
+- 补充攻击相关中英文文案。
+
+#### Docs
+
+- 新增 `docs/step-5-attack-design.md`。
+- 更新 `docs/design.md`，补充 Step 5 详细设计文档入口。
+- 更新 `docs/project-structure.md`。
+- 更新 `docs/changelog.zh-CN.md`。
+
+#### Verification
+
+- `backend`: `.\mvnw.cmd test`
+- `frontend`: `npm run build`
+
+---
+
 ## Documentation Workflow
 
 ### Commit: `bootstrap entry`

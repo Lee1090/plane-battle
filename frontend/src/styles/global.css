@@ -191,7 +191,7 @@ button:disabled {
 
 .boardGridWrap {
   position: relative;
-  width: min(100%, calc(100vh - 390px));
+  width: min(100%, calc(100vh - 460px));
   max-width: 430px;
   min-width: 240px;
   align-self: start;
@@ -219,7 +219,7 @@ button:disabled {
   font-size: 12px;
 }
 
-.boardCell:not(:disabled):not(.partHEAD):not(.partWING):not(.partBODY):not(.partTAIL):hover {
+.boardCell:not(:disabled):not(.partHEAD):not(.partWING):not(.partBODY):not(.partTAIL):not(.attackMISS):not(.attackHIT_PLANE):not(.attackHIT_HEAD):hover {
   background: #eaf6f5;
 }
 
@@ -413,15 +413,18 @@ button:disabled {
 
 .attackMISS {
   background: #dce4ea;
+  font-weight: 750;
 }
 
 .attackHIT_PLANE {
   background: #f3c969;
+  font-weight: 750;
 }
 
 .attackHIT_HEAD {
   background: #e85d75;
   color: #ffffff;
+  font-weight: 750;
 }
 
 @media (max-width: 760px) {

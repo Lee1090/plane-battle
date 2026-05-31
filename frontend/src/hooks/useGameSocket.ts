@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  attackMessage,
   createGameSocket,
   joinMessage,
   sitDownMessage,
@@ -77,5 +78,6 @@ export function useGameSocket() {
     sitDown: (side: PlayerSide) => send(sitDownMessage(side)),
     standUp: () => send(standUpMessage()),
     submitDeployment: (planes: PlaneDeploymentRequest[]) => send(submitDeploymentMessage(planes)),
+    attack: (row: number, col: number) => send(attackMessage({ row, col })),
   };
 }

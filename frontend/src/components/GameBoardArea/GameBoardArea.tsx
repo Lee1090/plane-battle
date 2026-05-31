@@ -22,6 +22,7 @@ import {
   type DraftPlane,
 } from './planeShape';
 import type {
+  AttackResult,
   Cell,
   ClientView,
   Direction,
@@ -37,6 +38,7 @@ interface GameBoardAreaProps {
   onSitDown: (side: PlayerSide) => void;
   onStandUp: () => void;
   onSubmitDeployment: (planes: PlaneDeploymentRequest[]) => void;
+  onAttack: (row: number, col: number) => void;
   translate: (key: MessageKey) => string;
 }
 
@@ -58,6 +60,7 @@ export function GameBoardArea({
   onSitDown,
   onStandUp,
   onSubmitDeployment,
+  onAttack,
   translate,
 }: GameBoardAreaProps) {
   const storedDraft = useMemo(loadDeploymentDraft, []);
@@ -71,6 +74,8 @@ export function GameBoardArea({
   const selectedPlane = draftPlanes.find((plane) => plane.id === selectedPlaneId) ?? draftPlanes[0];
   const gameState = clientView?.gameState;
   const isDeploying = gameState?.status === 'DEPLOYING';
+  const isPlaying = gameState?.status === 'PLAYING';
+  const isFinished = gameState?.status === 'FINISHED';
   const isPlayer = clientView?.role === 'PLAYER_A' || clientView?.role === 'PLAYER_B';
   const ownSide = clientView?.side;
   const ownReady =
@@ -166,14 +171,19 @@ export function GameBoardArea({
             model={board}
             draftParts={board.editable && !ownReady ? draftParts : []}
             selectedHead={board.editable ? selectedPlane.head : null}
-            onCellClick={board.editable ? placeNextPlaneHead : undefined}
+            onCellClick={board.editable ? placeNextPlaneHead : canAttackBoard(board, clientView) ? onAttack : undefined}
             onHeadDrop={board.editable ? movePlaneHead : undefined}
             onHeadSelect={board.editable ? setSelectedPlaneId : undefined}
             canSit={canSit}
             canStandUp={canStandUp && ownSide === board.side}
             isCurrentPlayerSide={ownSide === board.side}
             isDeploying={Boolean(isDeploying)}
+            isPlaying={Boolean(isPlaying)}
+            isFinished={Boolean(isFinished)}
             isReady={ownSide === board.side ? ownReady : board.ready}
+            currentTurn={gameState?.currentTurn ?? null}
+            winner={gameState?.winner ?? null}
+            ownSide={ownSide ?? null}
             selectedPlaneId={selectedPlaneId}
             selectedDirection={selectedPlane.direction}
             canSubmit={validation.canSubmit}
@@ -202,7 +212,12 @@ function BoardSlot({
   canStandUp,
   isCurrentPlayerSide,
   isDeploying,
+  isPlaying,
+  isFinished,
   isReady,
+  currentTurn,
+  winner,
+  ownSide,
   selectedPlaneId,
   selectedDirection,
   canSubmit,
@@ -224,7 +239,12 @@ function BoardSlot({
   canStandUp: boolean;
   isCurrentPlayerSide: boolean;
   isDeploying: boolean;
+  isPlaying: boolean;
+  isFinished: boolean;
   isReady: boolean;
+  currentTurn: PlayerSide | null;
+  winner: PlayerSide | null;
+  ownSide: PlayerSide | null;
   selectedPlaneId: string;
   selectedDirection: Direction;
   canSubmit: boolean;
@@ -259,7 +279,12 @@ function BoardSlot({
         model={model}
         isCurrentPlayerSide={isCurrentPlayerSide}
         isDeploying={isDeploying}
+        isPlaying={isPlaying}
+        isFinished={isFinished}
         isReady={isReady}
+        currentTurn={currentTurn}
+        winner={winner}
+        ownSide={ownSide}
         selectedPlaneId={selectedPlaneId}
         selectedDirection={selectedDirection}
         canSubmit={canSubmit}
@@ -317,6 +342,7 @@ function BoardPanel({
             const part = cellParts.find((cellPart) => cellPart.type === 'HEAD') ?? cellParts[0];
             const isSelectedHead = selectedHead?.row === row && selectedHead?.col === col;
             const canDragHead = Boolean(onHeadDrop && part?.type === 'HEAD');
+            const disabled = !onCellClick || Boolean(attack);
             const className = [
               'boardCell',
               part ? `part${part.type}` : '',
@@ -339,6 +365,9 @@ function BoardPanel({
                     return;
                   }
                   if (part) {
+                    return;
+                  }
+                  if (attack) {
                     return;
                   }
                   onCellClick?.(row, col);
@@ -382,10 +411,10 @@ function BoardPanel({
                     onHeadDrop(planeId, row, col);
                   }
                 }}
-                disabled={!onCellClick}
-                aria-label={`${model.title} ${row},${col}`}
+                disabled={disabled}
+                aria-label={getCellAriaLabel(model.title, row, col, attack?.result, translate)}
               >
-                {part?.type === 'HEAD' ? part.planeId : attack ? attack.result.slice(0, 1) : ''}
+                {part?.type === 'HEAD' ? part.planeId : attack ? getAttackMarker(attack.result) : ''}
               </button>
             );
           })}
@@ -434,7 +463,12 @@ function SideControlPanel({
   model,
   isCurrentPlayerSide,
   isDeploying,
+  isPlaying,
+  isFinished,
   isReady,
+  currentTurn,
+  winner,
+  ownSide,
   selectedPlaneId,
   selectedDirection,
   canSubmit,
@@ -447,7 +481,12 @@ function SideControlPanel({
   model: BoardPanelModel;
   isCurrentPlayerSide: boolean;
   isDeploying: boolean;
+  isPlaying: boolean;
+  isFinished: boolean;
   isReady: boolean;
+  currentTurn: PlayerSide | null;
+  winner: PlayerSide | null;
+  ownSide: PlayerSide | null;
   selectedPlaneId: string;
   selectedDirection: Direction;
   canSubmit: boolean;
@@ -476,6 +515,24 @@ function SideControlPanel({
     );
   }
 
+  if (isPlaying || isFinished) {
+    return (
+      <aside className="controlPanel passiveControlPanel">
+        <h2>{translate('battle')}</h2>
+        <p>
+          {getBattleControlText({
+            model,
+            currentTurn,
+            winner,
+            ownSide,
+            isFinished,
+            translate,
+          })}
+        </p>
+      </aside>
+    );
+  }
+
   return (
     <aside className="controlPanel passiveControlPanel">
       <h2>{translate('deployment')}</h2>
@@ -492,6 +549,68 @@ function getPassiveControlText(model: BoardPanelModel, isDeploying: boolean, tra
     return model.ready ? translate('deploymentSubmitted') : translate('spectatorDeploying');
   }
   return model.subtitle;
+}
+
+function getBattleControlText({
+  model,
+  currentTurn,
+  winner,
+  ownSide,
+  isFinished,
+  translate,
+}: {
+  model: BoardPanelModel;
+  currentTurn: PlayerSide | null;
+  winner: PlayerSide | null;
+  ownSide: PlayerSide | null;
+  isFinished: boolean;
+  translate: (key: MessageKey) => string;
+}) {
+  if (isFinished) {
+    return `${translate('winnerText')}: ${winner ?? '-'}`;
+  }
+  if (!ownSide) {
+    return translate('spectatorPlaying');
+  }
+  if (model.side !== ownSide) {
+    return currentTurn === ownSide ? translate('attackOpponentBoard') : translate('waitingTurn');
+  }
+  return currentTurn === ownSide ? translate('yourTurn') : translate('waitingTurn');
+}
+
+function canAttackBoard(model: BoardPanelModel, clientView: ClientView | null) {
+  const gameState = clientView?.gameState;
+  return Boolean(
+    clientView?.side &&
+      clientView.role !== 'SPECTATOR' &&
+      gameState?.status === 'PLAYING' &&
+      gameState.currentTurn === clientView.side &&
+      model.side !== clientView.side,
+  );
+}
+
+function getAttackMarker(result: AttackResult) {
+  if (result === 'MISS') {
+    return 'M';
+  }
+  if (result === 'HIT_HEAD') {
+    return 'X';
+  }
+  return 'H';
+}
+
+function getCellAriaLabel(
+  title: string,
+  row: number,
+  col: number,
+  result: AttackResult | undefined,
+  translate: (key: MessageKey) => string,
+) {
+  if (!result) {
+    return `${title} ${row},${col} ${translate('attackCell')}`;
+  }
+  const resultKey = result === 'MISS' ? 'miss' : result === 'HIT_HEAD' ? 'hitHead' : 'hitPlane';
+  return `${title} ${row},${col} ${translate('alreadyAttacked')} ${translate(resultKey)}`;
 }
 
 function buildBoardModels(clientView: ClientView | null, translate: (key: MessageKey) => string): BoardPanelModel[] {
@@ -527,7 +646,7 @@ function buildBoardModel(
   const board = side === 'A' ? gameState?.playerABoard ?? null : gameState?.playerBBoard ?? null;
   const seated = side === 'A' ? Boolean(gameState?.playerASeated) : Boolean(gameState?.playerBSeated);
   const ready = side === 'A' ? Boolean(gameState?.playerAReady) : Boolean(gameState?.playerBReady);
-  const subtitle = getBoardSubtitle({ seated, ready, hidden, editable, clientView, translate });
+  const subtitle = getBoardSubtitle({ side, seated, ready, hidden, editable, clientView, translate });
 
   return {
     side,
@@ -542,6 +661,7 @@ function buildBoardModel(
 }
 
 function getBoardSubtitle({
+  side,
   seated,
   ready,
   hidden,
@@ -549,6 +669,7 @@ function getBoardSubtitle({
   clientView,
   translate,
 }: {
+  side: PlayerSide;
   seated: boolean;
   ready: boolean;
   hidden: boolean;
@@ -567,6 +688,18 @@ function getBoardSubtitle({
       return ready ? translate('opponentReady') : translate('opponentDeploying');
     }
     return ready ? translate('deploymentSubmitted') : translate('spectatorDeploying');
+  }
+  if (clientView?.gameState.status === 'PLAYING') {
+    if (clientView.side === null) {
+      return translate('spectatorPlaying');
+    }
+    return clientView.side === side ? translate('myBoard') : translate('opponentBoard');
+  }
+  if (clientView?.gameState.status === 'FINISHED') {
+    if (clientView.side === null) {
+      return translate(`status.${clientView.gameState.status}`);
+    }
+    return clientView.side === side ? translate('myBoard') : translate('opponentBoard');
   }
   return translate(`status.${clientView?.gameState.status ?? 'WAITING'}`);
 }
