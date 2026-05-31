@@ -24,8 +24,21 @@ public class GameService {
     }
 
     public synchronized ClientView join(String sessionId) {
-        PlayerSession playerSession = room.getSessions()
-                .computeIfAbsent(sessionId, PlayerSession::new);
+        return join(sessionId, null);
+    }
+
+    public synchronized ClientView join(String sessionId, String clientId) {
+        PlayerSession restoredSession = findPlayerByClientId(clientId);
+        if (restoredSession != null) {
+            room.getSessions().remove(restoredSession.getSessionId());
+            restoredSession.setSessionId(sessionId);
+            restoredSession.setClientId(clientId);
+            room.getSessions().put(sessionId, restoredSession);
+            return buildClientView(restoredSession);
+        }
+
+        PlayerSession playerSession = room.getSessions().computeIfAbsent(sessionId, PlayerSession::new);
+        playerSession.setClientId(clientId);
         return buildClientView(playerSession);
     }
 
@@ -218,14 +231,30 @@ public class GameService {
     }
 
     private boolean shouldClearSeatOnLeave(PlayerSession playerSession) {
+        if (playerSession.getClientId() != null && !playerSession.getClientId().isBlank()) {
+            return false;
+        }
         if (room.getGameState().getStatus() == GameStatus.WAITING) {
             return true;
         }
-        if (room.getGameState().getStatus() != GameStatus.DEPLOYING) {
-            return false;
+        return false;
+    }
+
+    private PlayerSession findPlayerByClientId(String clientId) {
+        if (clientId == null || clientId.isBlank()) {
+            return null;
         }
-        return playerSession.getSide() == PlayerSide.A && !room.getGameState().isPlayerAReady()
-                || playerSession.getSide() == PlayerSide.B && !room.getGameState().isPlayerBReady();
+        if (hasClientId(room.getPlayerA(), clientId)) {
+            return room.getPlayerA();
+        }
+        if (hasClientId(room.getPlayerB(), clientId)) {
+            return room.getPlayerB();
+        }
+        return null;
+    }
+
+    private boolean hasClientId(PlayerSession playerSession, String clientId) {
+        return playerSession != null && clientId.equals(playerSession.getClientId());
     }
 
     private void moveToDeployingWhenReady() {

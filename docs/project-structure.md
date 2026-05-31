@@ -8,7 +8,10 @@ plane-battle/
 |   |   |   |-- DeploymentPanel/
 |   |   |   |   `-- DeploymentPanel.tsx
 |   |   |   |-- GameBoardArea/
-|   |   |   |   `-- GameBoardArea.tsx
+|   |   |   |   |-- GameBoardArea.tsx
+|   |   |   |   |-- deploymentDraftStorage.ts
+|   |   |   |   |-- deploymentInteraction.ts
+|   |   |   |   `-- planeShape.ts
 |   |   |   |-- Seat/
 |   |   |   |   `-- Seat.tsx
 |   |   |   `-- StatusPanel/
@@ -20,6 +23,7 @@ plane-battle/
 |   |   |-- pages/
 |   |   |   `-- GamePage.tsx
 |   |   |-- services/
+|   |   |   |-- clientIdentity.ts
 |   |   |   `-- gameSocket.ts
 |   |   |-- styles/
 |   |   |   `-- global.css

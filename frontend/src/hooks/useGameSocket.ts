@@ -6,6 +6,7 @@ import {
   standUpMessage,
   submitDeploymentMessage,
 } from '../services/gameSocket';
+import { getClientId } from '../services/clientIdentity';
 import type { ClientMessage, ClientView, PlaneDeploymentRequest, PlayerSide, ServerMessage } from '../types/game';
 
 type ConnectionStatus = 'CONNECTING' | 'OPEN' | 'CLOSED' | 'ERROR';
@@ -32,7 +33,7 @@ export function useGameSocket() {
 
     socket.addEventListener('open', () => {
       setConnectionStatus('OPEN');
-      socket.send(JSON.stringify(joinMessage()));
+      socket.send(JSON.stringify(joinMessage(getClientId())));
     });
 
     socket.addEventListener('message', (event) => {

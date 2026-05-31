@@ -157,6 +157,8 @@ class GameServiceTest {
     @Test
     void leaveKeepsSubmittedDeploymentDuringDeploying() {
         GameService gameService = createGameService();
+        gameService.join("session-a", "client-a");
+        gameService.join("session-b", "client-b");
         gameService.sitDown("session-a", PlayerSide.A);
         gameService.sitDown("session-b", PlayerSide.B);
         gameService.submitDeployment("session-a", validDeployment());
@@ -167,6 +169,57 @@ class GameServiceTest {
         assertThat(gameService.getGameState().isPlayerASeated()).isTrue();
         assertThat(gameService.getGameState().isPlayerAReady()).isTrue();
         assertThat(gameService.getGameState().getPlayerABoard()).isNotNull();
+    }
+
+    @Test
+    void joinRestoresPlayerByClientIdDuringDeploying() {
+        GameService gameService = createGameService();
+        gameService.join("session-a-old", "client-a");
+        gameService.join("session-b", "client-b");
+        gameService.sitDown("session-a-old", PlayerSide.A);
+        gameService.sitDown("session-b", PlayerSide.B);
+        gameService.submitDeployment("session-a-old", validDeployment());
+
+        gameService.leave("session-a-old");
+        ClientView restoredView = gameService.join("session-a-new", "client-a");
+
+        assertThat(restoredView.getRole()).isEqualTo(PlayerRole.PLAYER_A);
+        assertThat(restoredView.getSide()).isEqualTo(PlayerSide.A);
+        assertThat(restoredView.getGameState().isPlayerASeated()).isTrue();
+        assertThat(restoredView.getGameState().isPlayerAReady()).isTrue();
+        assertThat(restoredView.getGameState().getPlayerABoard().getPlanes()).hasSize(3);
+    }
+
+    @Test
+    void joinRestoresUnsubmittedPlayerSeatByClientIdDuringDeploying() {
+        GameService gameService = createGameService();
+        gameService.join("session-a-old", "client-a");
+        gameService.join("session-b", "client-b");
+        gameService.sitDown("session-a-old", PlayerSide.A);
+        gameService.sitDown("session-b", PlayerSide.B);
+
+        gameService.leave("session-a-old");
+        ClientView restoredView = gameService.join("session-a-new", "client-a");
+
+        assertThat(restoredView.getRole()).isEqualTo(PlayerRole.PLAYER_A);
+        assertThat(restoredView.getSide()).isEqualTo(PlayerSide.A);
+        assertThat(restoredView.getGameState().isPlayerASeated()).isTrue();
+        assertThat(restoredView.getGameState().isPlayerAReady()).isFalse();
+    }
+
+    @Test
+    void joinRestoresPlayerSeatByClientIdWhileWaiting() {
+        GameService gameService = createGameService();
+        gameService.join("session-a-old", "client-a");
+        gameService.sitDown("session-a-old", PlayerSide.A);
+
+        gameService.leave("session-a-old");
+        ClientView restoredView = gameService.join("session-a-new", "client-a");
+
+        assertThat(restoredView.getRole()).isEqualTo(PlayerRole.PLAYER_A);
+        assertThat(restoredView.getSide()).isEqualTo(PlayerSide.A);
+        assertThat(restoredView.getGameState().getStatus()).isEqualTo(GameStatus.WAITING);
+        assertThat(restoredView.getGameState().isPlayerASeated()).isTrue();
     }
 
     @Test

@@ -108,7 +108,7 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     'direction.LEFT': 'LEFT',
   },
   'zh-CN': {
-    appTitle: '\u98de\u673a\u68cb\u76d8\u5bf9\u6218',
+    appTitle: '\u98de\u673a\u5927\u6218',
     connection: '\u8fde\u63a5',
     language: '\u8bed\u8a00 / Language',
     role: '\u8eab\u4efd',

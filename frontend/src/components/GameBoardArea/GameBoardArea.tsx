@@ -1,12 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DeploymentPanel } from '../DeploymentPanel/DeploymentPanel';
 import type { MessageKey } from '../../i18n/messages';
+import {
+  directionFromArrowKey,
+  findNextUndeployedPlane,
+  shouldIgnoreDirectionShortcut,
+  validateDraftPlacement,
+} from './deploymentInteraction';
+import {
+  clearDeploymentDraft,
+  loadDeploymentDraft,
+  saveDeploymentDraft,
+} from './deploymentDraftStorage';
+import {
+  BOARD_SIZE,
+  DIRECTIONS,
+  PLANE_IDS,
+  buildDraftParts,
+  createPlaneDragImage,
+  type DraftPart,
+  type DraftPlane,
+} from './planeShape';
 import type {
   Cell,
   ClientView,
   Direction,
   PlaneDeploymentRequest,
-  PlanePartType,
   PlayerBoard,
   PlayerSide,
 } from '../../types/game';
@@ -21,19 +40,6 @@ interface GameBoardAreaProps {
   translate: (key: MessageKey) => string;
 }
 
-interface DraftPlane {
-  id: string;
-  head: Cell | null;
-  direction: Direction;
-}
-
-interface DraftPart {
-  planeId: string;
-  type: PlanePartType;
-  row: number;
-  col: number;
-}
-
 interface BoardPanelModel {
   side: PlayerSide;
   title: string;
@@ -45,23 +51,6 @@ interface BoardPanelModel {
   seated: boolean;
 }
 
-const PLANE_IDS = ['P1', 'P2', 'P3'];
-const DIRECTIONS: Direction[] = ['UP', 'RIGHT', 'DOWN', 'LEFT'];
-const BOARD_SIZE = 10;
-
-const UP_SHAPE: Array<{ type: PlanePartType; row: number; col: number }> = [
-  { type: 'HEAD', row: 0, col: 0 },
-  { type: 'WING', row: 1, col: -2 },
-  { type: 'WING', row: 1, col: -1 },
-  { type: 'WING', row: 1, col: 0 },
-  { type: 'WING', row: 1, col: 1 },
-  { type: 'WING', row: 1, col: 2 },
-  { type: 'BODY', row: 2, col: 0 },
-  { type: 'TAIL', row: 3, col: -1 },
-  { type: 'TAIL', row: 3, col: 0 },
-  { type: 'TAIL', row: 3, col: 1 },
-];
-
 export function GameBoardArea({
   clientView,
   canSit,
@@ -71,13 +60,14 @@ export function GameBoardArea({
   onSubmitDeployment,
   translate,
 }: GameBoardAreaProps) {
-  const [selectedPlaneId, setSelectedPlaneId] = useState(PLANE_IDS[0]);
+  const storedDraft = useMemo(loadDeploymentDraft, []);
+  const [selectedPlaneId, setSelectedPlaneId] = useState(storedDraft?.selectedPlaneId ?? PLANE_IDS[0]);
   const [draftPlanes, setDraftPlanes] = useState<DraftPlane[]>(() =>
-    PLANE_IDS.map((id) => ({ id, head: null, direction: 'UP' })),
+    storedDraft?.draftPlanes ?? PLANE_IDS.map((id) => ({ id, head: null, direction: 'UP' })),
   );
 
   const draftParts = useMemo(() => draftPlanes.flatMap(buildDraftParts), [draftPlanes]);
-  const validation = validateDraft(draftPlanes, draftParts);
+  const validation = validateDraftPlacement(draftPlanes, draftParts);
   const selectedPlane = draftPlanes.find((plane) => plane.id === selectedPlaneId) ?? draftPlanes[0];
   const gameState = clientView?.gameState;
   const isDeploying = gameState?.status === 'DEPLOYING';
@@ -88,22 +78,26 @@ export function GameBoardArea({
   const boards = buildBoardModels(clientView, translate);
 
   useEffect(() => {
+    if (isDeploying && isPlayer && !ownReady) {
+      saveDeploymentDraft({ selectedPlaneId, draftPlanes });
+      return;
+    }
+    if (gameState) {
+      clearDeploymentDraft();
+    }
+  }, [draftPlanes, gameState, isDeploying, isPlayer, ownReady, selectedPlaneId]);
+
+  useEffect(() => {
     if (!isDeploying || !isPlayer || ownReady) {
       return undefined;
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (isEditableElement(event.target)) {
+      if (shouldIgnoreDirectionShortcut(event.target)) {
         return;
       }
 
-      const directionByKey: Partial<Record<string, Direction>> = {
-        ArrowLeft: 'RIGHT',
-        ArrowRight: 'LEFT',
-        ArrowUp: 'DOWN',
-        ArrowDown: 'UP',
-      };
-      const direction = directionByKey[event.key];
+      const direction = directionFromArrowKey(event.key);
       if (!direction) {
         return;
       }
@@ -127,7 +121,7 @@ export function GameBoardArea({
       return;
     }
 
-    const nextPlane = draftPlanes.find((plane) => !plane.head);
+    const nextPlane = findNextUndeployedPlane(draftPlanes);
     if (!nextPlane) {
       return;
     }
@@ -153,6 +147,7 @@ export function GameBoardArea({
     if (!validation.canSubmit || ownReady) {
       return;
     }
+    clearDeploymentDraft();
     onSubmitDeployment(
       draftPlanes.map((plane) => ({
         id: plane.id,
@@ -574,109 +569,4 @@ function getBoardSubtitle({
     return ready ? translate('deploymentSubmitted') : translate('spectatorDeploying');
   }
   return translate(`status.${clientView?.gameState.status ?? 'WAITING'}`);
-}
-
-function buildDraftParts(plane: DraftPlane): DraftPart[] {
-  if (!plane.head) {
-    return [];
-  }
-  const head = plane.head;
-  return UP_SHAPE.map((shapePart) => {
-    const [rowOffset, colOffset] = rotate(shapePart.row, shapePart.col, plane.direction);
-    return {
-      planeId: plane.id,
-      type: shapePart.type,
-      row: head.row + rowOffset,
-      col: head.col + colOffset,
-    };
-  });
-}
-
-function rotate(rowOffset: number, colOffset: number, direction: Direction): [number, number] {
-  switch (direction) {
-    case 'UP':
-      return [rowOffset, colOffset];
-    case 'DOWN':
-      return [-rowOffset, -colOffset];
-    case 'LEFT':
-      return [colOffset, rowOffset];
-    case 'RIGHT':
-      return [-colOffset, -rowOffset];
-  }
-}
-
-function createPlaneDragImage(planeParts: DraftPart[], cellSize: number) {
-  if (planeParts.length === 0 || cellSize <= 0) {
-    return null;
-  }
-
-  const minRow = Math.min(...planeParts.map((part) => part.row));
-  const maxRow = Math.max(...planeParts.map((part) => part.row));
-  const minCol = Math.min(...planeParts.map((part) => part.col));
-  const maxCol = Math.max(...planeParts.map((part) => part.col));
-  const head = planeParts.find((part) => part.type === 'HEAD');
-
-  if (!head) {
-    return null;
-  }
-
-  const element = document.createElement('div');
-  element.id = `plane-drag-${head.planeId}-${Date.now()}`;
-  element.className = 'planeDragImage';
-  element.style.gridTemplateColumns = `repeat(${maxCol - minCol + 1}, ${cellSize}px)`;
-  element.style.gridTemplateRows = `repeat(${maxRow - minRow + 1}, ${cellSize}px)`;
-
-  for (let row = minRow; row <= maxRow; row += 1) {
-    for (let col = minCol; col <= maxCol; col += 1) {
-      const planePart = planeParts.find((part) => part.row === row && part.col === col);
-      const cell = document.createElement('div');
-      cell.className = [
-        'planeDragCell',
-        planePart ? `part${planePart.type}` : '',
-        planePart ? `plane${planePart.planeId}` : '',
-      ]
-        .filter(Boolean)
-        .join(' ');
-      cell.textContent = planePart?.type === 'HEAD' ? planePart.planeId : '';
-      element.appendChild(cell);
-    }
-  }
-
-  return {
-    element,
-    offsetX: (head.col - minCol + 0.5) * cellSize,
-    offsetY: (head.row - minRow + 0.5) * cellSize,
-  };
-}
-
-function validateDraft(draftPlanes: DraftPlane[], draftParts: DraftPart[]) {
-  if (draftPlanes.some((plane) => !plane.head)) {
-    return { canSubmit: false, messageKey: 'deploymentIncomplete' as MessageKey };
-  }
-
-  const occupiedCells = new Set<string>();
-  for (const part of draftParts) {
-    if (part.row < 0 || part.row >= BOARD_SIZE || part.col < 0 || part.col >= BOARD_SIZE) {
-      return { canSubmit: false, messageKey: 'deploymentOutOfBoard' as MessageKey };
-    }
-
-    const cellKey = `${part.row}:${part.col}`;
-    if (occupiedCells.has(cellKey)) {
-      return { canSubmit: false, messageKey: 'deploymentOverlap' as MessageKey };
-    }
-    occupiedCells.add(cellKey);
-  }
-
-  return { canSubmit: true, messageKey: 'deploymentReady' as MessageKey };
-}
-
-function isEditableElement(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  if (target.classList.contains('boardCell')) {
-    return false;
-  }
-
-  return target.matches('button, input, select, textarea, [contenteditable="true"]');
 }

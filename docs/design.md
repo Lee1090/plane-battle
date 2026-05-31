@@ -15,6 +15,7 @@
 - During deployment, clicking an already placed plane head selects that plane as the current focus.
 - During deployment, clicking an empty cell places the next undeployed plane in order: `P1`, then `P2`, then `P3`; after all three are placed, empty-cell clicks do nothing.
 - During deployment, invalid placement feedback should distinguish out-of-board placement from plane overlap.
+- During deployment, browser refresh should restore the player's seat by a stable client id; submitted deployment remains available from backend state, while unsubmitted draft placement is restored from browser local storage.
 - Plane heads share one color; each plane uses a different uniform non-head body color.
 
 ## 1. 项目目标

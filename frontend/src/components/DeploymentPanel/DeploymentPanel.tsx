@@ -1,5 +1,6 @@
 import type { Direction, PlayerRole } from '../../types/game';
 import type { MessageKey } from '../../i18n/messages';
+import { isPlacementWarning } from '../GameBoardArea/deploymentInteraction';
 
 interface DeploymentPanelProps {
   role: PlayerRole;
@@ -84,8 +85,4 @@ export function DeploymentPanel({
       </div>
     </aside>
   );
-}
-
-function isPlacementWarning(messageKey: MessageKey) {
-  return messageKey === 'deploymentOutOfBoard' || messageKey === 'deploymentOverlap';
 }

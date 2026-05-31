@@ -5,8 +5,8 @@ export function createGameSocket() {
   return new WebSocket(wsUrl);
 }
 
-export function joinMessage(): ClientMessage {
-  return { type: 'JOIN' };
+export function joinMessage(clientId: string): ClientMessage<{ clientId: string }> {
+  return { type: 'JOIN', data: { clientId } };
 }
 
 export function sitDownMessage(side: PlayerSide): ClientMessage<{ side: PlayerSide }> {

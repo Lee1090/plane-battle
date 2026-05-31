@@ -143,6 +143,19 @@ Spectators cannot:
 - See plane positions during `DEPLOYING`.
 - See hidden plane positions during `PLAYING`.
 
+## Refresh And Reconnect
+
+The browser keeps a stable client id in local storage and sends it with `JOIN`.
+During `DEPLOYING`, if a player refreshes the browser, the new WebSocket connection should restore the same seat by client id.
+
+Refresh behavior:
+
+- Player A refreshes and returns as Player A.
+- Player B refreshes and returns as Player B.
+- Submitted deployment remains visible to the owning player after refresh.
+- Unsubmitted local draft placement is restored from browser local storage for the same client id.
+- Closed or stale WebSocket sessions should not clear deployment-stage seats immediately.
+
 ## Recommended Components
 
 The implementation can evolve toward:
