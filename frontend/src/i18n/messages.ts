@@ -39,6 +39,7 @@ export type MessageKey =
   | 'winnerText'
   | 'attackCell'
   | 'alreadyAttacked'
+  | 'attackLegend'
   | 'miss'
   | 'hitPlane'
   | 'hitHead'
@@ -98,6 +99,7 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     winnerText: 'Winner',
     attackCell: 'Attack this cell.',
     alreadyAttacked: 'Already attacked.',
+    attackLegend: 'Attack result legend',
     miss: 'Miss',
     hitPlane: 'Hit plane',
     hitHead: 'Hit head',
@@ -165,6 +167,7 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     winnerText: '\u80dc\u8005',
     attackCell: '\u653b\u51fb\u8fd9\u4e2a\u683c\u5b50\u3002',
     alreadyAttacked: '\u8fd9\u4e2a\u683c\u5b50\u5df2\u653b\u51fb\u8fc7\u3002',
+    attackLegend: '\u653b\u51fb\u7ed3\u679c\u56fe\u4f8b',
     miss: '\u672a\u547d\u4e2d',
     hitPlane: '\u547d\u4e2d\u673a\u8eab',
     hitHead: '\u547d\u4e2d\u673a\u5934',

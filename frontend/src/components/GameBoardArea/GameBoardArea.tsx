@@ -51,6 +51,7 @@ interface BoardPanelModel {
   hidden: boolean;
   ready: boolean;
   seated: boolean;
+  showAttackLegend: boolean;
 }
 
 export function GameBoardArea({
@@ -331,7 +332,7 @@ function BoardPanel({
         {model.ready ? <span className="readyBadge">{translate('ready')}</span> : null}
       </div>
 
-      <div className="boardGridWrap">
+      <div className={`boardGridWrap ${model.showAttackLegend ? 'boardGridWrapWithLegend' : ''}`}>
         <div className="boardGrid">
           {Array.from({ length: BOARD_SIZE * BOARD_SIZE }, (_, index) => {
             const row = Math.floor(index / BOARD_SIZE);
@@ -414,14 +415,40 @@ function BoardPanel({
                 disabled={disabled}
                 aria-label={getCellAriaLabel(model.title, row, col, attack?.result, translate)}
               >
-                {part?.type === 'HEAD' ? part.planeId : attack ? getAttackMarker(attack.result) : ''}
+                {attack ? (
+                  <span className="attackMarker">{getAttackMarker(attack.result)}</span>
+                ) : part?.type === 'HEAD' ? (
+                  part.planeId
+                ) : (
+                  ''
+                )}
               </button>
             );
           })}
         </div>
+        {model.showAttackLegend ? <AttackLegend translate={translate} /> : null}
         {model.hidden ? <div className="boardOverlay">{model.subtitle}</div> : null}
       </div>
     </section>
+  );
+}
+
+function AttackLegend({ translate }: { translate: (key: MessageKey) => string }) {
+  return (
+    <div className="attackLegend" aria-label={translate('attackLegend')}>
+      <div className="attackLegendRow">
+        <span className="legendBlast legendBlastHead">✕</span>
+        <span>{translate('hitHead')}</span>
+      </div>
+      <div className="attackLegendRow">
+        <span className="legendBlast legendBlastPlane" />
+        <span>{translate('hitPlane')}</span>
+      </div>
+      <div className="attackLegendRow">
+        <span className="legendMiss">MISS</span>
+        <span>{translate('miss')}</span>
+      </div>
+    </div>
   );
 }
 
@@ -591,12 +618,12 @@ function canAttackBoard(model: BoardPanelModel, clientView: ClientView | null) {
 
 function getAttackMarker(result: AttackResult) {
   if (result === 'MISS') {
-    return 'M';
+    return 'MISS';
   }
   if (result === 'HIT_HEAD') {
-    return 'X';
+    return '✕';
   }
-  return 'H';
+  return '';
 }
 
 function getCellAriaLabel(
@@ -647,6 +674,7 @@ function buildBoardModel(
   const seated = side === 'A' ? Boolean(gameState?.playerASeated) : Boolean(gameState?.playerBSeated);
   const ready = side === 'A' ? Boolean(gameState?.playerAReady) : Boolean(gameState?.playerBReady);
   const subtitle = getBoardSubtitle({ side, seated, ready, hidden, editable, clientView, translate });
+  const showAttackLegend = shouldShowAttackLegend(side, clientView);
 
   return {
     side,
@@ -657,7 +685,17 @@ function buildBoardModel(
     hidden,
     ready,
     seated,
+    showAttackLegend,
   };
+}
+
+function shouldShowAttackLegend(side: PlayerSide, clientView: ClientView | null) {
+  const status = clientView?.gameState.status;
+  return Boolean(
+    clientView?.side &&
+      side !== clientView.side &&
+      (status === 'PLAYING' || status === 'FINISHED'),
+  );
 }
 
 function getBoardSubtitle({

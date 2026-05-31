@@ -3,6 +3,59 @@
 本文档记录项目的重要实现变更、提交记录和设计调整。
 详细设计仍以 `docs/design.md` 和各 Step 设计文档为准。
 
+## Step 5 - 攻击结果视觉反馈
+
+### Commit: `current commit`
+
+**Title:** `style(step 5): refine attack result markers`  
+**Date:** 2026-05-31  
+**Branch:** `feature/step-5-attack`
+
+#### Summary
+
+调整对战阶段棋盘上的攻击结果显示，让命中和未命中的反馈更直观。
+
+#### Frontend
+
+- 命中普通飞机部位时显示简洁爆炸效果。
+- 命中飞机头时显示红色爆炸效果，并在中心显示 `✕`。
+- 爆炸效果调整为单色手绘感形状，命中机身使用黄色，命中机头使用红色。
+- 未命中时显示 `MISS` 效果。
+- 攻击结果显示优先于原有飞机编号，避免自己的棋盘被击中后仍显示原机头编号。
+- 对方棋盘右上侧新增三行攻击结果图例，分别说明红色爆炸、黄色爆炸和 `MISS`。
+- 棋盘保持在各自区域内居中，攻击结果图例以悬挂方式放在对方棋盘右侧，不参与棋盘居中计算。
+
+#### Verification
+
+- `frontend`: `npm run build`
+
+---
+
+## Step 5 - 同浏览器多页面身份同步修复
+
+### Commit: `current commit`
+
+**Title:** `fix(step 5): keep same-client tabs in player role`  
+**Date:** 2026-05-31  
+**Branch:** `feature/step-5-attack`
+
+#### Summary
+
+修复同一个浏览器打开多个游戏页面时，后打开页面会接管同一 `clientId` 的玩家身份，导致先打开页面退回只读观战视角的问题。
+
+#### Backend
+
+- `JOIN` 使用已有 `clientId` 恢复身份时，不再删除旧 WebSocket session。
+- 新打开的同 `clientId` 页面会镜像已有玩家身份。
+- 坐下和起身操作会同步同一 `clientId` 下所有打开页面的角色和阵营。
+- 补充同浏览器多页面身份同步的回归测试。
+
+#### Verification
+
+- `backend`: `.\mvnw.cmd test`
+
+---
+
 ## Step 5 - 对战攻击阶段
 
 ### Commit: `current commit`

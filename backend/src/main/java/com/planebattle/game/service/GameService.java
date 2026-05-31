@@ -36,11 +36,10 @@ public class GameService {
     public synchronized ClientView join(String sessionId, String clientId) {
         PlayerSession restoredSession = findPlayerByClientId(clientId);
         if (restoredSession != null) {
-            room.getSessions().remove(restoredSession.getSessionId());
-            restoredSession.setSessionId(sessionId);
-            restoredSession.setClientId(clientId);
-            room.getSessions().put(sessionId, restoredSession);
-            return buildClientView(restoredSession);
+            PlayerSession playerSession = room.getSessions().computeIfAbsent(sessionId, PlayerSession::new);
+            mirrorPlayerIdentity(restoredSession, playerSession);
+            playerSession.setClientId(clientId);
+            return buildClientView(playerSession);
         }
 
         PlayerSession playerSession = room.getSessions().computeIfAbsent(sessionId, PlayerSession::new);
@@ -75,6 +74,7 @@ public class GameService {
             throw new IllegalArgumentException("Invalid player side.");
         }
 
+        syncLinkedClientSessions(playerSession);
         moveToDeployingWhenReady();
         return buildClientView(playerSession);
     }
@@ -282,8 +282,26 @@ public class GameService {
 
         playerSession.setRole(PlayerRole.SPECTATOR);
         playerSession.setSide(null);
+        syncLinkedClientSessions(playerSession);
         if (room.getGameState().getStatus() == GameStatus.DEPLOYING) {
             room.getGameState().setStatus(GameStatus.WAITING);
+        }
+    }
+
+    private void mirrorPlayerIdentity(PlayerSession source, PlayerSession target) {
+        target.setRole(source.getRole());
+        target.setSide(source.getSide());
+    }
+
+    private void syncLinkedClientSessions(PlayerSession source) {
+        String clientId = source.getClientId();
+        if (clientId == null || clientId.isBlank()) {
+            return;
+        }
+        for (PlayerSession session : room.getSessions().values()) {
+            if (hasClientId(session, clientId)) {
+                mirrorPlayerIdentity(source, session);
+            }
         }
     }
 

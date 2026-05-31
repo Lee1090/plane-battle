@@ -226,6 +226,50 @@ class GameServiceTest {
     }
 
     @Test
+    void joinWithSameClientIdDoesNotStealIdentityFromExistingOpenTab() {
+        GameService gameService = createGameService();
+        gameService.join("session-a-tab-1", "client-a");
+        gameService.sitDown("session-a-tab-1", PlayerSide.A);
+
+        ClientView tab2View = gameService.join("session-a-tab-2", "client-a");
+        ClientView tab1View = gameService.getClientView("session-a-tab-1");
+
+        assertThat(tab2View.getRole()).isEqualTo(PlayerRole.PLAYER_A);
+        assertThat(tab2View.getSide()).isEqualTo(PlayerSide.A);
+        assertThat(tab1View.getRole()).isEqualTo(PlayerRole.PLAYER_A);
+        assertThat(tab1View.getSide()).isEqualTo(PlayerSide.A);
+        assertThat(tab1View.getGameState().isPlayerASeated()).isTrue();
+    }
+
+    @Test
+    void sitDownSyncsOtherOpenTabsWithSameClientId() {
+        GameService gameService = createGameService();
+        gameService.join("session-a-tab-1", "client-a");
+        gameService.join("session-a-tab-2", "client-a");
+
+        gameService.sitDown("session-a-tab-1", PlayerSide.A);
+
+        ClientView tab2View = gameService.getClientView("session-a-tab-2");
+        assertThat(tab2View.getRole()).isEqualTo(PlayerRole.PLAYER_A);
+        assertThat(tab2View.getSide()).isEqualTo(PlayerSide.A);
+    }
+
+    @Test
+    void standUpSyncsOtherOpenTabsWithSameClientId() {
+        GameService gameService = createGameService();
+        gameService.join("session-a-tab-1", "client-a");
+        gameService.join("session-a-tab-2", "client-a");
+        gameService.sitDown("session-a-tab-1", PlayerSide.A);
+
+        gameService.standUp("session-a-tab-2");
+
+        ClientView tab1View = gameService.getClientView("session-a-tab-1");
+        assertThat(tab1View.getRole()).isEqualTo(PlayerRole.SPECTATOR);
+        assertThat(tab1View.getSide()).isNull();
+        assertThat(tab1View.getGameState().isPlayerASeated()).isFalse();
+    }
+
+    @Test
     void submitDeploymentRejectsUnexpectedPlaneIds() {
         GameService gameService = createGameService();
         gameService.sitDown("session-a", PlayerSide.A);

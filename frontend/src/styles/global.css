@@ -207,6 +207,9 @@ button:disabled {
 }
 
 .boardCell {
+  position: relative;
+  display: grid;
+  place-items: center;
   aspect-ratio: 1;
   min-height: 0;
   border: 0;
@@ -217,6 +220,7 @@ button:disabled {
   background: #ffffff;
   color: #17202a;
   font-size: 12px;
+  overflow: hidden;
 }
 
 .boardCell:not(:disabled):not(.partHEAD):not(.partWING):not(.partBODY):not(.partTAIL):not(.attackMISS):not(.attackHIT_PLANE):not(.attackHIT_HEAD):hover {
@@ -411,20 +415,151 @@ button:disabled {
   box-shadow: inset 0 0 0 3px #17202a;
 }
 
-.attackMISS {
-  background: #dce4ea;
-  font-weight: 750;
+.attackMarker {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0;
 }
 
-.attackHIT_PLANE {
-  background: #f3c969;
-  font-weight: 750;
+.boardCell.attackMISS {
+  background:
+    radial-gradient(circle at center, rgba(93, 107, 118, 0.12) 0 28%, transparent 30%),
+    repeating-linear-gradient(135deg, #eef2f5 0 4px, #e3e9ee 4px 8px);
+  color: #56636d;
 }
 
-.attackHIT_HEAD {
-  background: #e85d75;
+.boardCell.attackMISS .attackMarker {
+  color: #56636d;
+}
+
+.boardCell.attackHIT_PLANE,
+.boardCell.attackHIT_HEAD {
+  background: #ffffff;
   color: #ffffff;
-  font-weight: 750;
+  font-weight: 850;
+}
+
+.boardCell.attackHIT_PLANE::before,
+.boardCell.attackHIT_HEAD::before {
+  position: absolute;
+  inset: 12%;
+  clip-path: polygon(
+    48% 5%,
+    61% 14%,
+    75% 10%,
+    91% 18%,
+    86% 36%,
+    96% 48%,
+    82% 61%,
+    89% 78%,
+    68% 78%,
+    57% 91%,
+    44% 77%,
+    30% 94%,
+    20% 74%,
+    5% 70%,
+    16% 52%,
+    4% 40%,
+    22% 31%,
+    20% 15%,
+    36% 18%
+  );
+  content: "";
+}
+
+.boardCell.attackHIT_PLANE::before {
+  background: #e6b84f;
+}
+
+.boardCell.attackHIT_HEAD::before {
+  background: #d95b59;
+}
+
+.boardCell.attackHIT_HEAD .attackMarker {
+  color: #ffffff;
+  font-size: 13px;
+  text-shadow: 0 1px 2px rgba(23, 32, 42, 0.42);
+}
+
+.attackLegend {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 12px);
+  display: grid;
+  width: 132px;
+  gap: 7px;
+  padding: 2px 0;
+  color: #465560;
+  font-size: 12px;
+}
+
+.attackLegendRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  line-height: 1.2;
+}
+
+.legendBlast {
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  clip-path: polygon(
+    48% 5%,
+    61% 14%,
+    75% 10%,
+    91% 18%,
+    86% 36%,
+    96% 48%,
+    82% 61%,
+    89% 78%,
+    68% 78%,
+    57% 91%,
+    44% 77%,
+    30% 94%,
+    20% 74%,
+    5% 70%,
+    16% 52%,
+    4% 40%,
+    22% 31%,
+    20% 15%,
+    36% 18%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 850;
+  text-shadow: 0 1px 2px rgba(23, 32, 42, 0.38);
+}
+
+.legendBlastHead {
+  background: #d95b59;
+}
+
+.legendBlastPlane {
+  background: #e6b84f;
+}
+
+.legendMiss {
+  display: grid;
+  width: 28px;
+  min-height: 18px;
+  place-items: center;
+  border-radius: 3px;
+  background:
+    radial-gradient(circle at center, rgba(93, 107, 118, 0.12) 0 28%, transparent 30%),
+    repeating-linear-gradient(135deg, #eef2f5 0 4px, #e3e9ee 4px 8px);
+  color: #56636d;
+  font-size: 8px;
+  font-weight: 850;
 }
 
 @media (max-width: 760px) {
@@ -467,6 +602,12 @@ button:disabled {
 
   .boardGridWrap {
     width: min(100%, 420px);
+  }
+
+  .attackLegend {
+    position: static;
+    width: 100%;
+    margin-top: 8px;
   }
 
   .deploymentHeader,
