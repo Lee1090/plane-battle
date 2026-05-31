@@ -3,7 +3,9 @@ package com.planebattle.websocket;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.planebattle.game.dto.ClientMessage;
 import com.planebattle.game.dto.ClientView;
+import com.planebattle.game.dto.JoinRequest;
 import com.planebattle.game.dto.ServerMessage;
+import com.planebattle.game.dto.SubmitDeploymentRequest;
 import com.planebattle.game.model.PlayerSide;
 import com.planebattle.game.service.GameService;
 import com.planebattle.util.JsonUtils;
@@ -22,6 +24,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private static final String JOIN = "JOIN";
     private static final String SIT_DOWN = "SIT_DOWN";
     private static final String STAND_UP = "STAND_UP";
+    private static final String SUBMIT_DEPLOYMENT = "SUBMIT_DEPLOYMENT";
     private static final String CONNECTED = "CONNECTED";
     private static final String STATE_UPDATE = "STATE_UPDATE";
 
@@ -50,7 +53,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         if (JOIN.equals(clientMessage.getType())) {
-            ClientView clientView = gameService.join(session.getId());
+            ClientView clientView = gameService.join(session.getId(), parseJoinRequest(clientMessage).getClientId());
             send(session, ServerMessage.data(CONNECTED, clientView));
             broadcastClientViews();
             return;
@@ -77,6 +80,19 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (SUBMIT_DEPLOYMENT.equals(clientMessage.getType())) {
+            try {
+                SubmitDeploymentRequest deploymentRequest = parseDeploymentRequest(clientMessage);
+                gameService.submitDeployment(session.getId(), deploymentRequest.getPlanes());
+                broadcastClientViews();
+            } catch (JsonProcessingException exception) {
+                send(session, ServerMessage.error("Invalid deployment payload."));
+            } catch (IllegalArgumentException exception) {
+                send(session, ServerMessage.error(exception.getMessage()));
+            }
+            return;
+        }
+
         send(session, ServerMessage.error("Invalid message type."));
     }
 
@@ -96,6 +112,20 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("Invalid player side.");
         }
+    }
+
+    private SubmitDeploymentRequest parseDeploymentRequest(ClientMessage clientMessage) throws JsonProcessingException {
+        if (clientMessage.getData() == null) {
+            throw new IllegalArgumentException("Deployment payload is required.");
+        }
+        return jsonUtils.fromJsonNode(clientMessage.getData(), SubmitDeploymentRequest.class);
+    }
+
+    private JoinRequest parseJoinRequest(ClientMessage clientMessage) throws JsonProcessingException {
+        if (clientMessage.getData() == null) {
+            return new JoinRequest();
+        }
+        return jsonUtils.fromJsonNode(clientMessage.getData(), JoinRequest.class);
     }
 
     private void broadcastClientViews() {

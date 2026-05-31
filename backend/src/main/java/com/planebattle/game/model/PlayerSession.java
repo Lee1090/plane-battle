@@ -3,6 +3,7 @@ package com.planebattle.game.model;
 public class PlayerSession {
 
     private String sessionId;
+    private String clientId;
     private PlayerRole role = PlayerRole.SPECTATOR;
     private PlayerSide side;
 
@@ -19,6 +20,14 @@ public class PlayerSession {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
     }
 
     public PlayerRole getRole() {

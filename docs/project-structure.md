@@ -1,90 +1,93 @@
+# Project Structure
+
+```text
 plane-battle/
-├── frontend/                # React 前端
-│   ├── public/
-│   ├── src/
-│   │   ├── components/     # UI 组件
-│   │   │   ├── Board/
-│   │   │   ├── Cell/
-│   │   │   ├── Seat/
-│   │   │   ├── StatusPanel/
-│   │   │   └── DeploymentPanel/
-│   │   │
-│   │   ├── pages/
-│   │   │   └── GamePage.tsx
-│   │   │
-│   │   ├── hooks/
-│   │   │   └── useGameSocket.ts
-│   │   │
-│   │   ├── services/
-│   │   │   └── gameSocket.ts
-│   │   │
-│   │   ├── types/
-│   │   │   └── game.ts
-│   │   │
-│   │   ├── i18n/           # 多语言
-│   │   │   ├── index.ts
-│   │   │   ├── en-US.json
-│   │   │   └── zh-CN.json
-│   │   │
-│   │   ├── styles/
-│   │   │   └── global.css
-│   │   │
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   │
-│   ├── .env               # 本地环境变量
-│   ├── .env.production.example # 生产环境变量示例（Vercel）
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── backend/               # Spring Boot 后端
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/planebattle/
-│   │   │   │
-│   │   │   │   ├── config/        # WebSocket 配置
-│   │   │   │   │   └── WebSocketConfig.java
-│   │   │   │   │
-│   │   │   │   ├── websocket/     # WebSocket handler
-│   │   │   │   │   └── GameWebSocketHandler.java
-│   │   │   │   │
-│   │   │   │   ├── game/
-│   │   │   │   │   ├── model/     # 数据模型
-│   │   │   │   │   │   ├── GameRoom.java
-│   │   │   │   │   │   ├── GameState.java
-│   │   │   │   │   │   ├── PlayerSession.java
-│   │   │   │   │   │   ├── PlayerBoard.java
-│   │   │   │   │   │   ├── Plane.java
-│   │   │   │   │   │   ├── PlanePart.java
-│   │   │   │   │   │   └── AttackRecord.java
-│   │   │   │   │   │
-│   │   │   │   │   ├── service/   # 核心逻辑
-│   │   │   │   │   │   ├── GameService.java
-│   │   │   │   │   │   ├── DeploymentService.java
-│   │   │   │   │   │   └── AttackService.java
-│   │   │   │   │   │
-│   │   │   │   │   ├── rule/      # 规则计算（关键）
-│   │   │   │   │   │   ├── PlaneShapeService.java
-│   │   │   │   │   │   └── GameRuleService.java
-│   │   │   │   │   │
-│   │   │   │   │   └── dto/       # WebSocket 消息
-│   │   │   │   │       ├── ClientMessage.java
-│   │   │   │   │       ├── ServerMessage.java
-│   │   │   │   │       └── ClientView.java
-│   │   │   │   │
-│   │   │   │   ├── util/
-│   │   │   │   │   └── JsonUtils.java
-│   │   │   │   │
-│   │   │   │   └── PlaneBattleApplication.java
-│   │   │   │
-│   │   │   └── resources/
-│   │   │       └── application.yml
-│   │
-│   ├── pom.xml
-│   └── mvnw
-│
-├── .gitignore
-├── README.md
-└── docs/                  # 设计文档（你现在这份）
-    ├── design.md
-    └── project-structure.md
+|-- frontend/                         # React frontend
+|   |-- src/
+|   |   |-- components/
+|   |   |   |-- DeploymentPanel/
+|   |   |   |   `-- DeploymentPanel.tsx
+|   |   |   |-- GameBoardArea/
+|   |   |   |   |-- GameBoardArea.tsx
+|   |   |   |   |-- deploymentDraftStorage.ts
+|   |   |   |   |-- deploymentInteraction.ts
+|   |   |   |   `-- planeShape.ts
+|   |   |   |-- Seat/
+|   |   |   |   `-- Seat.tsx
+|   |   |   `-- StatusPanel/
+|   |   |       `-- StatusPanel.tsx
+|   |   |-- hooks/
+|   |   |   `-- useGameSocket.ts
+|   |   |-- i18n/
+|   |   |   `-- messages.ts
+|   |   |-- pages/
+|   |   |   `-- GamePage.tsx
+|   |   |-- services/
+|   |   |   |-- clientIdentity.ts
+|   |   |   `-- gameSocket.ts
+|   |   |-- styles/
+|   |   |   `-- global.css
+|   |   |-- types/
+|   |   |   `-- game.ts
+|   |   |-- App.tsx
+|   |   `-- main.tsx
+|   |-- .env
+|   |-- .env.production.example
+|   |-- package.json
+|   |-- tsconfig.json
+|   `-- vite.config.ts
+|
+|-- backend/                          # Spring Boot backend
+|   |-- src/main/java/com/planebattle/
+|   |   |-- config/
+|   |   |   `-- WebSocketConfig.java
+|   |   |-- game/
+|   |   |   |-- dto/
+|   |   |   |   |-- ClientMessage.java
+|   |   |   |   |-- ClientView.java
+|   |   |   |   |-- PlaneDeploymentRequest.java
+|   |   |   |   |-- ServerMessage.java
+|   |   |   |   `-- SubmitDeploymentRequest.java
+|   |   |   |-- model/
+|   |   |   |   |-- AttackRecord.java
+|   |   |   |   |-- AttackResult.java
+|   |   |   |   |-- Cell.java
+|   |   |   |   |-- Direction.java
+|   |   |   |   |-- GameRoom.java
+|   |   |   |   |-- GameState.java
+|   |   |   |   |-- GameStatus.java
+|   |   |   |   |-- Plane.java
+|   |   |   |   |-- PlanePart.java
+|   |   |   |   |-- PlanePartType.java
+|   |   |   |   |-- PlayerBoard.java
+|   |   |   |   |-- PlayerRole.java
+|   |   |   |   |-- PlayerSession.java
+|   |   |   |   `-- PlayerSide.java
+|   |   |   |-- rule/
+|   |   |   |   `-- PlaneShapeService.java
+|   |   |   `-- service/
+|   |   |       |-- DeploymentValidator.java
+|   |   |       `-- GameService.java
+|   |   |-- util/
+|   |   |   `-- JsonUtils.java
+|   |   |-- websocket/
+|   |   |   `-- GameWebSocketHandler.java
+|   |   `-- PlaneBattleApplication.java
+|   |-- src/main/resources/
+|   |   `-- application.yml
+|   |-- src/test/java/com/planebattle/
+|   |   |-- game/service/GameServiceTest.java
+|   |   `-- websocket/GameWebSocketHandlerTest.java
+|   |-- pom.xml
+|   |-- mvnw
+|   `-- mvnw.cmd
+|
+|-- docs/
+|   |-- design.md
+|   |-- step-4-ui-design.md
+|   `-- project-structure.md
+|
+|-- .gitignore
+|-- .editorconfig
+`-- README.md
+```
